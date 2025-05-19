@@ -1,9 +1,7 @@
-function: straight_array
 info: {}
-module: gdsfactory.components.straight
-name: straight_array
+name: straight_array_gdsfacto_4d2a5b84
 settings:
-  cross_section: xs_sc
-  length: 10.0
+  cross_section: strip
+  length: 10
   n: 4
-  spacing: 4.0
+  spacing: 4

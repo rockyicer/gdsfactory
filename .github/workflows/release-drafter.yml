@@ -1,15 +1,12 @@
 name: Release Drafter and Labels
-
 on:
   push:
     branches:
       - main
   pull_request:
     types: [edited, opened, reopened, synchronize, unlabeled, labeled]
-
 permissions:
   contents: read
-
 jobs:
   update_release_draft:
     permissions:
@@ -33,5 +30,5 @@ jobs:
         with:
           mode: minimum
           count: 1
-          labels: "breaking, bug, github_actions, documentation, dependencies, enhancement, feature, maintenance, security"
+          labels: "breaking, bug, github_actions, documentation, dependencies, enhancement, feature, maintenance, security, typing"
           add_comment: true

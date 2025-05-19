@@ -14,8 +14,7 @@ def ring_single_sample(
     coupler_ring: ComponentSpec = "coupler_ring",
     straight: ComponentSpec = "straight",
     bend: ComponentSpec = "bend_euler",
-    cross_section: CrossSectionSpec = "xs_sc",
-    **kwargs,
+    cross_section: CrossSectionSpec = "strip",
 ) -> Component:
     """Single bus ring made of a ring coupler.
 
@@ -31,7 +30,6 @@ def ring_single_sample(
         straight: straight function.
         bend: 90 degrees bend function.
         cross_section: spec.
-        kwargs: cross_section settings.
 
 
     .. code::
@@ -45,22 +43,24 @@ def ring_single_sample(
           length_x
 
     """
-    gap = gf.snap.snap_to_grid(gap, grid_factor=2)
-
-    xs = gf.get_cross_section(cross_section, **kwargs)
+    gap_array = gf.snap.snap_to_grid(gap, grid_factor=2)
 
     coupler_ring_component = gf.get_component(
         coupler_ring,
         bend=bend,
-        gap=gap,
+        gap=gap_array,
         radius=radius,
         length_x=length_x,
-        cross_section=xs,
+        cross_section=cross_section,
     )
-    straight_side = gf.get_component(straight, length=length_y, cross_section=xs)
-    straight_top = gf.get_component(straight, length=length_x, cross_section=xs)
+    straight_side = gf.get_component(
+        straight, length=length_y, cross_section=cross_section
+    )
+    straight_top = gf.get_component(
+        straight, length=length_x, cross_section=cross_section
+    )
 
-    bend = gf.get_component(bend, radius=radius, cross_section=xs)
+    bend = gf.get_component(bend, radius=radius, cross_section=cross_section)
 
     c = Component()
     cb = c << coupler_ring_component
@@ -69,16 +69,16 @@ def ring_single_sample(
     bl = c << bend
     br = c << bend
     wt = c << straight_top
-    # wt.mirror(p1=(0, 0), p2=(1, 0))
+    # wt.dmirror(p1=(0, 0), p2=(1, 0))
 
-    wl.connect(port="o2", destination=cb.ports["o2"])
-    bl.connect(port="o2", destination=wl.ports["o1"])
+    wl.connect(port="o2", other=cb.ports["o2"])
+    bl.connect(port="o2", other=wl.ports["o1"])
 
-    wt.connect(port="o2", destination=bl.ports["o1"])
-    br.connect(port="o2", destination=wt.ports["o1"])
-    wr.connect(port="o1", destination=br.ports["o1"])
+    wt.connect(port="o2", other=bl.ports["o1"])
+    br.connect(port="o2", other=wt.ports["o1"])
+    wr.connect(port="o1", other=br.ports["o1"])
 
-    c.add_port("o2", port=cb.ports["o2"])
+    c.add_port("o2", port=cb.ports["o4"])
     c.add_port("o1", port=cb.ports["o1"])
     return c
 
@@ -88,6 +88,6 @@ def test_ring_single_sample() -> None:
 
 
 if __name__ == "__main__":
-    c = ring_single_sample(width=2, gap=1, layer=(2, 0))
-    print(c.ports)
-    c.show(show_ports=True)
+    c = ring_single_sample()
+    c.pprint_ports()
+    c.show()

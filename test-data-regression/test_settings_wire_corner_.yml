@@ -1,8 +1,12 @@
-function: wire_corner
 info:
-  dy: 10.0
-  length: 10.0
-module: gdsfactory.components.wire
-name: wire_corner
+  dy: 10
+  length: 10
+name: wire_corner_gdsfactoryp_4db3826e
 settings:
-  cross_section: xs_metal_routing
+  cross_section: metal_routing
+  port_names:
+  - e1
+  - e2
+  port_types:
+  - electrical
+  - electrical

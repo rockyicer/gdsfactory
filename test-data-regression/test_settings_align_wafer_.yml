@@ -1,12 +1,8 @@
-function: align_wafer
 info: {}
-module: gdsfactory.components.align
-name: align_wafer
+name: align_wafer_gdsfactoryp_f057b528
 settings:
-  cross_length: 80.0
+  cross_length: 80
   layer: WG
-  layer_cladding: null
-  layers: null
-  spacing: 10.0
+  spacing: 10
   square_corner: bottom_left
-  width: 10.0
+  width: 10

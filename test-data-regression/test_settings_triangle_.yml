@@ -1,10 +1,7 @@
-function: triangle
 info: {}
-module: gdsfactory.components.triangles
-name: triangle
+name: triangle_gdsfactorypcom_336fc7f4
 settings:
   layer: WG
-  layers: null
   x: 10
   xtop: 0
   y: 20

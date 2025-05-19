@@ -1,28 +1,15 @@
-function: via
 info:
+  column_pitch: 2
   enclosure: 2
-  size:
-  - 0.7
-  - 0.7
-  spacing:
-  - 2.0
-  - 2.0
+  row_pitch: 2
   xsize: 0.7
-  xspacing: 2.0
   ysize: 0.7
-  yspacing: 2.0
-module: gdsfactory.components.via
-name: via_enclosure2_layerVIA1
+name: via_gdsfactorypcomponen_efa29aa3
 settings:
-  bbox_layers: null
-  bbox_offset: null
-  bbox_offsets: null
+  bbox_offset: 0
   enclosure: 2
-  gap: null
   layer: VIA1
+  pitch: 2
   size:
   - 0.7
   - 0.7
-  spacing:
-  - 2.0
-  - 2.0

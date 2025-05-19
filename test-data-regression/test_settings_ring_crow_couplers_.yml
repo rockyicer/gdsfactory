@@ -1,34 +1,20 @@
-function: ring_crow_couplers
 info: {}
-module: gdsfactory.components.ring_crow_couplers
-name: ring_crow_couplers
+name: ring_crow_couplers_gdsf_cb10ddba
 settings:
   bends:
-  - function: bend_circular
-  - function: bend_circular
-  - function: bend_circular
+  - bend_circular
+  - bend_circular
+  - bend_circular
   couplers:
-  - function: coupler
-  - function: coupler
-  - function: coupler
-  - function: coupler
+  - coupler
+  - coupler
+  - coupler
+  - coupler
   radius:
-  - 10.0
-  - 10.0
-  - 10.0
+  - 10
+  - 10
+  - 10
   ring_cross_sections:
-  - function: cross_section
-    module: gdsfactory.cross_section
-    settings:
-      radius: 10
-      radius_min: 5
-  - function: cross_section
-    module: gdsfactory.cross_section
-    settings:
-      radius: 10
-      radius_min: 5
-  - function: cross_section
-    module: gdsfactory.cross_section
-    settings:
-      radius: 10
-      radius_min: 5
+  - strip
+  - strip
+  - strip

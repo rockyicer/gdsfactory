@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import numpy.typing as npt
 
 from gdsfactory.component import Component
 from gdsfactory.typings import Floats, Layers
@@ -12,7 +13,7 @@ def to_np(
     layers: Layers = ((1, 0),),
     values: Floats | None = None,
     pad_width: int = 1,
-) -> np.ndarray:
+) -> npt.NDArray[np.float64]:
     """Returns a pixelated numpy array from Component polygons.
 
     Args:
@@ -26,14 +27,17 @@ def to_np(
     import skimage.draw as skdraw
 
     pixels_per_um = (1 / nm_per_pixel) * 1e3
-    xmin, ymin = component.bbox[0]
-    xmax, ymax = component.bbox[1]
+
+    dbbox = component.kdb_cell.dbbox()
+
+    xmin, ymin, xmax, ymax = dbbox.bottom, dbbox.left, dbbox.top, dbbox.right
+
     shape = (
         int(np.ceil(xmax - xmin) * pixels_per_um),
         int(np.ceil(ymax - ymin) * pixels_per_um),
     )
     img = np.zeros(shape, dtype=float)
-    layer_to_polygons = component.get_polygons(by_spec=True, depth=None)
+    layer_to_polygons = component.get_polygons_points(by="tuple")
 
     values = values or [1] * len(layers)
 
@@ -54,13 +58,13 @@ def to_np(
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
-    import gdsfactory as gf
+    from gdsfactory.components import bend_circular, straight
 
-    c = gf.components.straight()
-    c = gf.components.bend_circular()
+    c = straight()
+    c = bend_circular()
     # i = to_np(c, nm_per_pixel=250)
     i = to_np(c, nm_per_pixel=20)
-    c.show(show_ports=True)
+    c.show()
     plt.imshow(i.transpose(), origin="lower")
     plt.colorbar()
     plt.show()

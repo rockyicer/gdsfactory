@@ -2,9 +2,7 @@ from __future__ import annotations
 
 import gdsfactory as gf
 from gdsfactory.component import Component
-from gdsfactory.components.component_sequence import component_sequence
-from gdsfactory.components.straight import straight
-from gdsfactory.components.taper import taper_strip_to_ridge
+from gdsfactory.components import component_sequence, straight, taper_strip_to_ridge
 
 
 @gf.cell
@@ -55,4 +53,4 @@ def test_cutback_phase() -> None:
 
 if __name__ == "__main__":
     c = cutback_phase(n=1)
-    c.show(show_ports=True)
+    c.show()

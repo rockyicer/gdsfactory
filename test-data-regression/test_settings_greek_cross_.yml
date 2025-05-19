@@ -1,28 +1,12 @@
-function: greek_cross
 info: {}
-module: gdsfactory.components.greek_cross
-name: greek_cross
+name: greek_cross_gdsfactoryp_65b5a1f3
 settings:
+  layer_index: 0
   layers:
   - WG
   - N
   length: 30
-  offsets: null
-  via_stack:
-    function: via_stack
-    module: gdsfactory.components.via_stack
-    settings:
-      layers:
-      - WG
-      - NPP
-      - M1
-      vias:
-      - null
-      - null
-      - function: via
-        module: gdsfactory.components.via
-        settings:
-          layer: VIAC
+  via_stack: via_stack_npp_m1
   widths:
-  - 2.0
-  - 3.0
+  - 2
+  - 3

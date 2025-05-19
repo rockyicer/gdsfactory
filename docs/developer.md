@@ -1,25 +1,71 @@
 # Installation
 
-We support Python 3.10 or 3.11, and recommend [VSCode](https://code.visualstudio.com/) IDE. If you do not have Python installed, you can [download Anaconda](https://www.anaconda.com/download/).
+We support Python 3.11, 3.12 and 3.13, and recommend [VSCode](https://code.visualstudio.com/) IDE and UV.
 
-Upon Python installation, open Anaconda Prompt as Administrator and install the latest gdsfactory
+However we recommend python 3.11 or 3.12 as some extensions may not work on 3.13 yet.
 
-![anaconda prompt](https://i.imgur.com/eKk2bbs.png)
 
+## Installation for users in a new environment
+
+We recommend `uv` for installing GDSFactory:
+
+```bash
+# On macOS and Linux.
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+```bash
+# On Windows open a PowerShell terminal and run:
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Then you can install gdsfactory with:
+
+```bash
+uv venv --python 3.12
+uv pip install gdsfactory
+```
+
+
+## Installation for users in an existing environment
+
+You can install the latest released gdsfactory using the following command:
 
 ```
 pip install gdsfactory --upgrade
 ```
 
-## Update gdsfactory
-
-You can upgrade gdsfactory using the following command:
+If you want to install the latest pre-released version you can run:
 
 ```
-pip install gdsfactory --upgrade
+pip install git+https://github.com/gdsfactory/gdsfactory --force-reinstall
 ```
 
-Please note that some PDKs may only work for a specific version of gdsfactory. Ensure you install the correct gdsfactory version specified in the pyproject.toml file. This will automatically happen when you install gdsfactory as one of the PDK dependencies. For example, pip install gf180 will install the latest gdsfactory version tested for the GlobalFoundries180 PDK.
+## Installation for contributors
+
+As a contributor, if you are on windows you need to download [Git](https://git-scm.com/download/win) and optionally [GitHub Desktop](https://desktop.github.com/).
+
+Then you need to fork the [GitHub repository](https://github.com/gdsfactory/gdsfactory), git clone it (download it), git add, git commit, git push your improvement. Then pull request your changes to the main branch from the GitHub website.
+
+The following lines will:
+
+- clone your gdsfactory fork (make sure you change `YourUserName` with your GitHub user name)
+- download the GDS reference files for running GDS regressions from a separate [repo](https://github.com/gdsfactory/gdsfactory-test-data/tree/test-data)
+- install gdsfactory on your computer in `-e` edit mode.
+- install pre-commit hooks for making sure your code syntax and style matches some basic rules.
+
+```
+git clone git@github.com:YourUserName/gdsfactory.git
+cd gdsfactory
+git clone https://github.com/gdsfactory/gdsfactory-test-data.git -b test_klayout test-data-gds
+uv venv --python 3.12
+uv sync --extra docs --extra dev
+uv run pre-commit install
+```
+
+## Debugging installation
+
+Please note that some PDKs may only work for a specific version of gdsfactory. Ensure you install the correct gdsfactory version specified in the pyproject.toml file. This will automatically happen when you install gdsfactory as one of the PDK dependencies. For example, `pip install cspdk` will install the latest gdsfactory version tested for the CSPDK PDK.
 
 To determine your python and gdsfactory versions, use the following code:
 
@@ -32,32 +78,15 @@ import gdsfactory as gf
 gf.config.print_version_plugins()
 ```
 
-## Docker container
+## Tutorials
 
-As an alternative, you can use the pre-built Docker image from [github](https://github.com/gdsfactory/gdsfactory/pkgs/container/gdsfactory) or [hub.docker.com/r/joamatab/gdsfactory](https://hub.docker.com/r/joamatab/gdsfactory)
+You can [download](https://github.com/gdsfactory/gdsfactory/archive/refs/heads/main.zip) the jupyter notebooks tutorial and open them with VSCode.
 
-For instance, VS Code supports development inside a container. See [Developing inside a Container](https://code.visualstudio.com/docs/devcontainers/containers) for details.
-
-## Installation for developers
-
-As a contributor, if you are on windows you need to download [Git](https://git-scm.com/download/win) and optionally [GitHub Desktop](https://desktop.github.com/).
-
-Then you need to fork the [GitHub repository](https://github.com/gdsfactory/gdsfactory), git clone it (download it), git add, git commit, git push your improvement. Then pull request your changes to the main branch from the GitHub website.
-
-The following lines will:
-
-- clone your gdsfactory fork (make sure you change `YourUserName` with your GitHub user name)
-- download the GDS golden data for running GDS regressions from a separate [repo](https://github.com/gdsfactory/gdsfactory-test-data/tree/test-data)
-- install gdsfactory locally on your computer in `-e` edit mode.
-- install pre-commit hooks for making sure your code syntax and style matches some basic rules.
-
+We recommend running the tutorials with VSCode but you can also install and run them with jupyterlab.
 ```
-git clone git@github.com:YourUserName/gdsfactory.git
-cd gdsfactory
-git clone https://github.com/gdsfactory/gdsfactory-test-data.git -b test-data test-data
-pip install -e .[dev]
-pre-commit install
+pip install jupyterlab
 ```
+
 
 ## Style
 
@@ -89,13 +118,10 @@ In addition to unit tests run against the library, gdsfactory has a suite of reg
 |------|------|---------|--|
 | GDS | `tests/components/test_components.py:test_gds` | GDS | Tests that GDS files have not changed either structurally (cell names and hierarchy) or geometrically (XOR). |
 | Settings | `tests/components/test_components.py:test_settings` | YAML | Tests that component settings have not changed. |
-| Netlist | `tests/test_netlists.py` | YAML | Tests that extracted netlist yaml contents have not changed. |
-| Ports | `tests/components/test_ports.py` | CSV | Tests that port locations have not changed |
-| Containers | `tests/test_containers.py` | YAML | Tests that container settings have not changed |
+| Netlist | `tests/test_netlists.py` | YAML | Tests that you can convert components from YAML back and forth. |
 
 - regressions tests: avoids unwanted regressions by storing Components port locations in CSV and metadata in YAML files. You can force to regenerate the reference files running `pytest --force-regen -s` from the repo root directory.
   - `tests/components/test_components.py` stores all the component settings in YAML
-  - `tests/components/test_ports.py` stores all port locations in a CSV file
   - `tests/test_netlists.py` stores all the component netlist in YAML and rebuilds the component from the netlist. Converts the routed PIC into YAML and build back into the same PIC from its YAML definition
   - difftest: writes all components GDS in `run_layouts` and compares them with `ref_layouts`. When running the test it will do a boolean of the `run_layout` and the `ref_layout` and raise an error for any significant differences. It will prompt you to review the differences in klayout and approve or reject the new GDS.
 
@@ -131,7 +157,6 @@ What do we test?
 
 - Geometry polygons, layers and cell names.
 - Component Settings.
-- Port positions and ensure they are on grid.
 
 ```python
 import pytest
@@ -164,18 +189,13 @@ def test_settings(component_name: str, data_regression: DataRegressionFixture) -
     component = cells[component_name]()
     data_regression.check(component.to_dict())
 
-
-def test_assert_ports_on_grid(component_name: str) -> None:
-    """Ensures all ports are on grid to avoid 1nm gaps."""
-    component = cells[component_name]()
-    component.assert_ports_on_grid()
-
 ```
 
 For questions join the [![Join the chat at https://gitter.im/gdsfactory-dev/community](https://badges.gitter.im/gdsfactory-dev/community.svg)](https://gitter.im/gdsfactory-dev/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) with [element.io](https://element.io/download) or use GitHub issues or discussions.
 
-## Running notebooks
 
-You can find the tutorial jupyter notebooks in `notebooks` and open them with VSCode.
+## Docker container
 
-You can use [VSCode gdsfactory extension](https://marketplace.visualstudio.com/items?itemName=gdsfactory.gdsfactory) to open and run the notebooks.
+As an alternative, you can use the pre-built Docker image from [github](https://github.com/gdsfactory/gdsfactory/pkgs/container/gdsfactory)
+
+For instance, VS Code supports development inside a container. See [Developing inside a Container](https://code.visualstudio.com/docs/devcontainers/containers) for details.

@@ -1,17 +1,16 @@
-function: bend_circular
 info:
-  dy: 0.0
+  dy: 0
   length: 31.415
-  radius: 10.0
+  radius: 10
   route_info_length: 31.415
-  route_info_n_bend_90: 2.0
-  route_info_type: xs_sc
+  route_info_min_bend_radius: 10
+  route_info_n_bend_90: 2
+  route_info_strip_length: 31.415
+  route_info_type: strip
   route_info_weight: 31.415
-  route_info_xs_sc_length: 31.415
-module: gdsfactory.components.bend_circular
-name: bend_circular_angle180
+  width: 0.5
+name: bend_circular_gdsfactor_a1210e42
 settings:
+  allow_min_radius_violation: false
   angle: 180
-  cross_section: xs_sc
-  npoints: null
-  radius: null
+  cross_section: strip

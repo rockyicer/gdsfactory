@@ -1,7 +1,5 @@
-function: wafer
 info: {}
-module: gdsfactory.components.wafer
-name: wafer
+name: wafer_gdsfactorypcompon_ddb8201b
 settings:
   cols:
   - 2
@@ -13,7 +11,4 @@ settings:
   - 6
   - 2
   die_name_col_row: false
-  reticle:
-    function: die
-  xspacing: null
-  yspacing: null
+  reticle: die

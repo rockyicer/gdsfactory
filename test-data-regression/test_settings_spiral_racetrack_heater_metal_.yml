@@ -1,18 +1,12 @@
-function: spiral_racetrack_heater_metal
 info: {}
-module: gdsfactory.components.spiral_heater
-name: spiral_racetrack_heater_metal
+name: spiral_racetrack_heater_4edb23b1
 settings:
-  bend_factory:
-    function: bend_euler
-  bend_s_factory:
-    function: bend_s
-  heater_cross_section: xs_heater_metal
-  min_radius: null
+  bend: bend_euler
+  bend_s: bend_s
+  heater_cross_section: heater_metal
   num: 8
   spacing: 2
-  straight_factory:
-    function: straight
+  straight: straight
   straight_length: 30
   via_stack: via_stack_heater_mtop
-  waveguide_cross_section: xs_sc
+  waveguide_cross_section: strip

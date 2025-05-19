@@ -1,31 +1,23 @@
-function: mzi
 info: {}
-module: gdsfactory.components.mzi
-name: mzi_7a18d033
+name: mzi_gdsfactorypcomponen_be205e57
 settings:
-  add_electrical_ports_bot: true
   add_optical_ports_arms: false
-  bend:
-    function: bend_euler
-  combiner: null
-  cross_section: xs_sc
-  cross_section_x_bot: null
-  cross_section_x_top: null
-  delta_length: 10.0
-  extend_ports_straight_x: null
+  auto_rename_ports: true
+  bend: bend_euler
+  cross_section: strip
+  delta_length: 10
   length_x: 200
-  length_y: 2.0
+  length_y: 2
   min_length: 0.01
   mirror_bot: false
   nbends: 2
+  port1: o1
+  port2: o2
   port_e0_combiner: o3
   port_e0_splitter: o3
   port_e1_combiner: o2
   port_e1_splitter: o2
   splitter: mmi1x2
-  straight:
-    function: straight
-  straight_x_bot: null
+  straight: straight
   straight_x_top: straight_heater_metal
-  straight_y: null
   with_splitter: true

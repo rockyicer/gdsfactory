@@ -1,95 +1,113 @@
 from __future__ import annotations
 
+from typing import Any
+
 import gdsfactory as gf
+from gdsfactory.components.containers.add_fiber_array_optical_south_electrical_north import (
+    add_fiber_array_optical_south_electrical_north,
+)
+from gdsfactory.components.spirals.spiral import spiral
 
 
 @gf.cell
-def mzi_phase_shifter(length_x: float = 100.0, **kwargs) -> gf.Component:
-    """Returns MZI with TE grating couplers.
+def spiral_gc(**kwargs: Any) -> gf.Component:
+    """Returns a spiral double with Grating Couplers.
 
     Args:
-        length_x: length of the phase shifter.
-        kwargs: extra arguments passed to the MZI component.
+        kwargs: additional settings.
+
+    Keyword Args:
+        length: length of the spiral straight section.
+        bend: bend component.
+        straight: straight component.
+        cross_section: cross_section component.
+        spacing: spacing between the spiral loops.
+        n_loops: number of loops.
     """
-    test_info_mzi_heaters = dict(
-        doe="mzis_heaters",
-        analysis="mzi_heater",
-        measurement="optical_loopback4_heater_sweep",
+    c = spiral(**kwargs)
+    c = gf.routing.add_fiber_array(c)
+    c.info["doe"] = "spirals_sc"
+    c.info["measurement"] = "optical_spectrum"
+    c.info["measurement_parameters"] = (
+        "{'wl_start': 1.5, 'wl_stop': 1.6, 'wl_step': 0.001}"
     )
-    c = gf.components.mzi2x2_2x2_phase_shifter(length_x=length_x, **kwargs)
-    c = gf.components.add_fiber_array_optical_south_electrical_north(
-        c,
-        electrical_port_names=["top_l_e2", "top_r_e2"],
-    )
-    c.info.update(test_info_mzi_heaters)
+    c.info["analysis"] = "[power_envelope]"
+    c.info["analysis_parameters"] = "[]"
+    c.info["ports_optical"] = 4
+    c.info["ports_electrical"] = 0
+    c.info.update(kwargs)
     return c
 
 
 @gf.cell
-def ring_single_heater(length_x: float = 10.0, **kwargs) -> gf.Component:
-    """Returns ring with TE grating couplers.
+def mzi_gc(length_x: float = 10, **kwargs: Any) -> gf.Component:
+    """Returns a MZI with Grating Couplers.
 
     Args:
-        length_x: length of the ring.
-        kwargs: extra arguments passed to the ring component.
+        length_x: length of the MZI.
+        kwargs: additional settings.
     """
-    test_info_ring_heaters = dict(
-        doe="ring_heaters",
-        analysis="ring_heater",
-        measurement="optical_loopback2_heater_sweep",
+    c = gf.components.mzi2x2_2x2_phase_shifter(
+        length_x=length_x, auto_rename_ports=False, **kwargs
     )
-    c = gf.components.ring_single_heater(length_x=length_x, **kwargs)
-    c = gf.components.add_fiber_array_optical_south_electrical_north(
-        c,
-        electrical_port_names=["l_e2", "r_e2"],
+    c = gf.routing.add_pads_top(c, port_names=["top_l_e1", "top_r_e3"])
+    c = gf.routing.add_fiber_array(c)
+    c.info["doe"] = "mzi"
+    c.info["measurement"] = "optical_spectrum"
+    c.info["measurement_parameters"] = (
+        "{'wl_start': 1.5, 'wl_stop': 1.6, 'wl_step': 0.001}"
     )
-    c.info.update(test_info_ring_heaters)
+    c.info["analysis"] = "[fsr]"
+    c.info["analysis_parameters"] = "[]"
+    c.info["ports_electrical"] = 2
+    c.info["ports_optical"] = 6
+    c.info["length_x"] = length_x
+    c.info.update(kwargs)
     return c
 
 
 @gf.cell
-def spiral_sc(length: float = 20e3, **kwargs) -> gf.Component:
-    """Returns spiral with TE grating couplers.
+def sample_reticle(grid: bool = False) -> gf.Component:
+    """Returns MZI with TE grating couplers."""
+    mzis = [mzi_gc(length_x=lengths) for lengths in [100, 200, 300]]
+    spirals = [spiral_gc(length=length) for length in [0, 100, 200]]
+    rings: list[gf.Component] = []
+    for length_x in [10, 20, 30]:
+        ring = gf.components.ring_single_heater(length_x=length_x)
+        c = add_fiber_array_optical_south_electrical_north(
+            component=ring,
+            pad=gf.c.pad,
+            grating_coupler=gf.c.grating_coupler_te,
+            electrical_port_names=["l_e2", "r_e2"],
+            cross_section_metal="metal3",
+        ).copy()
 
-    Args:
-        length: length of the spiral.
-        kwargs: extra arguments passed to the spiral component.
-    """
-    info = dict(
-        doe="spirals_sc",
-        measurement="optical_loopback4",
-        analysis="optical_loopback4_spirals",
-    )
-    c = gf.components.spiral_inner_io_fiber_array(length=length, **kwargs)
-    c.info.update(info)
-    return c
+        c.name = f"ring_{length_x}"
+        c.info["doe"] = "ring_length_x"
+        c.info["measurement"] = "optical_spectrum"
+        c.info["measurement_parameters"] = (
+            "{'wl_start': 1.5, 'wl_stop': 1.6, 'wl_step': 0.001}"
+        )
+        c.info["ports_electrical"] = 2
+        c.info["ports_optical"] = 4
+        c.info["analysis"] = "[fsr]"
+        c.info["analysis_parameters"] = "[]"
+        rings.append(c)
 
-
-def sample_reticle(grid: bool = True, **kwargs) -> gf.Component:
-    """Returns MZI with TE grating couplers.
-
-    Args:
-        grid: if True returns components on a regular grid. False packs them as close as possible.
-        kwargs: passed to pack or grid.
-    """
-
-    mzis_te = [mzi_phase_shifter(length_x=length) for length in [100, 200, 300]]
-    rings_te = [ring_single_heater(length_x=length_x) for length_x in [10, 20, 30]]
-    spirals_te = [spiral_sc(length=length) for length in [20e3, 40e3, 60e3]]
-
-    components = mzis_te + rings_te + spirals_te
-
+    copies = 3  # number of copies of each component
+    components = mzis * copies + rings * copies + spirals * copies
     if grid:
-        return gf.grid(components, name_ports_with_component_name=True, **kwargs)
-    c = gf.pack(components, **kwargs)
-    if len(c) > 1:
-        raise ValueError(f"failed to pack into single group. Made {len(c)} groups.")
-    return c[0]
+        return gf.grid(components)
+    components = gf.pack(components)
+    if len(components) > 1:
+        components = gf.pack(components)
+    return components[0]
 
 
 if __name__ == "__main__":
-    c = sample_reticle(grid=False)
-    # c = mzi_phase_shifter()
-    # c = spiral_sc()
-    c.show(show_ports=True)
-    # c.pprint_ports()
+    c = sample_reticle()
+    # gdspath = c.write_gds("mask.gds")
+    # csvpath = write_labels(gdspath, prefixes=[""], layer_label="TEXT")
+    # df = pd.read_csv(csvpath)
+    # print(df)
+    c.show()

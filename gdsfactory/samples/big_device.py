@@ -1,21 +1,22 @@
 from __future__ import annotations
 
+from functools import partial
+
 import numpy as np
 
 import gdsfactory as gf
-from gdsfactory import Port
 from gdsfactory.component import Component
-from gdsfactory.typings import CrossSectionSpec
+from gdsfactory.routing.add_fiber_array import add_fiber_array
+from gdsfactory.typings import CrossSectionSpec, Size
 
 
 @gf.cell
 def big_device(
-    size: tuple[float, float] = (400.0, 400.0),
+    size: Size = (400.0, 400.0),
     nports: int = 16,
     spacing: float = 15.0,
-    layer: tuple[int, int] = (1, 0),
-    wg_width: float = 0.5,
-    cross_section: CrossSectionSpec = "xs_sc",
+    port_type: str = "optical",
+    cross_section: CrossSectionSpec = "strip",
 ) -> Component:
     """Big component with N ports on each side.
 
@@ -23,60 +24,66 @@ def big_device(
         size: x, y.
         nports: number of ports.
         spacing: in um.
-        layer: spec.
-        wg_width: waveguide width in um.
+        port_type: optical, electrical, rf, etc.
         cross_section: spec.
     """
+    from gdsfactory.pdk import get_layer
+
     component = gf.Component()
-    p0 = np.array((0, 0))
+    p0 = np.array((0, 0), dtype=np.float64)
 
     w, h = size
     dx = w / 2
     dy = h / 2
-    N = nports
+    n = nports
 
-    points = [[dx, dy], [dx, -dy], [-dx, -dy], [-dx, dy]]
+    xs = gf.get_cross_section(cross_section)
+    layer = xs.layer
+    assert layer is not None
+    width = xs.width
+
+    points = [(dx, dy), (dx, -dy), (-dx, -dy), (-dx, dy)]
     component.add_polygon(points, layer=layer)
 
-    for i in range(N):
-        port = Port(
+    create_port_with_port_settings = partial(
+        component.add_port,
+        port_type=port_type,
+        cross_section=xs,
+        layer=get_layer(layer),
+        width=width,
+    )
+
+    for i in range(n):
+        center = tuple(p0 + (-dx, (i - n / 2) * spacing))
+        create_port_with_port_settings(
             name=f"W{i}",
-            center=p0 + (-dx, (i - N / 2) * spacing),
+            center=(center[0], center[1]),
             orientation=180,
-            layer=layer,
-            width=wg_width,
         )
-        component.add_port(port)
 
-    for i in range(N):
-        port = Port(
+    for i in range(n):
+        center = tuple(p0 + (dx, (i - n / 2) * spacing))
+        create_port_with_port_settings(
             name=f"E{i}",
-            center=p0 + (dx, (i - N / 2) * spacing),
+            center=(center[0], center[1]),
             orientation=0,
-            layer=layer,
-            width=wg_width,
         )
-        component.add_port(port)
 
-    for i in range(N):
-        port = Port(
+    for i in range(n):
+        center = tuple(p0 + ((i - n / 2) * spacing, dy))
+        create_port_with_port_settings(
             name=f"N{i}",
-            center=p0 + ((i - N / 2) * spacing, dy),
+            center=(center[0], center[1]),
             orientation=90,
-            layer=layer,
-            width=wg_width,
         )
-        component.add_port(port)
 
-    for i in range(N):
-        port = Port(
+    for i in range(n):
+        center = tuple(p0 + ((i - n / 2) * spacing, -dy))
+        create_port_with_port_settings(
             name=f"S{i}",
-            center=p0 + ((i - N / 2) * spacing, -dy),
+            center=(center[0], center[1]),
             orientation=-90,
-            layer=layer,
-            width=wg_width,
         )
-        component.add_port(port)
 
     component.auto_rename_ports()
     return component
@@ -85,10 +92,14 @@ def big_device(
 if __name__ == "__main__":
     import gdsfactory as gf
 
-    pdk = gf.pdk.get_active_pdk()
-    pdk.gds_write_settings.flatten_offgrid_references = False
+    # pdk = gf.pdk.get_active_pdk()
+    # pdk.gds_write_settings.flatten_invalid_refs = False
     c = big_device()
-    c = gf.routing.add_fiber_array(c)
-    c = c.flatten_offgrid_references()
+    c = add_fiber_array(c)
+    c.show()
+    # lyrdb = c.connectivity_check()
+    # filepath = gf.config.home / "errors.lyrdb"
+    # lyrdb.save(filepath)
+    # gf.show(c, lyrdb=filepath)
+    # c = c.flatten_invalid_refs()
     # c.write_gds("./test.gds")
-    c.show(show_ports=False)

@@ -1,13 +1,10 @@
-function: coupler_symmetric
 info:
   length: 10.187
   min_bend_radius: 11.851
-module: gdsfactory.components.coupler_symmetric
-name: coupler_symmetric
+name: coupler_symmetric_gdsfa_c947830c
 settings:
-  bend:
-    function: bend_s
-  cross_section: xs_sc
-  dx: 10.0
-  dy: 4.0
+  bend: bend_s
+  cross_section: strip
+  dx: 10
+  dy: 4
   gap: 0.234

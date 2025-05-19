@@ -1,0 +1,118 @@
+instances:
+  array_gdsfactorypcompon_8765215d_185500_m10000:
+    component: array
+    info: {}
+    settings:
+      add_ports: true
+      auto_rename_ports: false
+      centered: false
+      column_pitch: 100
+      columns: 3
+      component: pad_small
+      post_process: null
+      row_pitch: 150
+      rows: 1
+      size: null
+  mzi_gdsfactorypcomponen_a148a88f_0_0:
+    component: mzi
+    info: {}
+    settings:
+      add_optical_ports_arms: false
+      auto_rename_ports: false
+      bend: bend_euler
+      combiner: null
+      cross_section: strip
+      cross_section_x_bot: null
+      cross_section_x_top: null
+      delta_length: 40
+      length_x: 500
+      length_y: 40
+      min_length: 0.01
+      mirror_bot: false
+      nbends: 2
+      port1: o1
+      port2: o2
+      port_e0_combiner: o3
+      port_e0_splitter: o3
+      port_e1_combiner: o2
+      port_e1_splitter: o2
+      splitter: mmi1x2
+      straight: straight
+      straight_x_bot: straight_heater_metal
+      straight_x_top: straight_heater_metal
+      straight_y: null
+      with_splitter: true
+name: mzi_pads_center_gdsfact_81123799
+nets: []
+placements:
+  array_gdsfactorypcompon_8765215d_185500_m10000:
+    mirror: false
+    rotation: 0
+    x: 185.5
+    y: -10
+  mzi_gdsfactorypcomponen_a148a88f_0_0:
+    mirror: false
+    rotation: 0
+    x: 0
+    y: 0
+ports:
+  bot_l_e1: mzi_gdsfactorypcomponen_a148a88f_0_0,bot_l_e1
+  bot_l_e2: mzi_gdsfactorypcomponen_a148a88f_0_0,bot_l_e2
+  bot_l_e3: mzi_gdsfactorypcomponen_a148a88f_0_0,bot_l_e3
+  bot_l_e4: mzi_gdsfactorypcomponen_a148a88f_0_0,bot_l_e4
+  bot_r_e1: mzi_gdsfactorypcomponen_a148a88f_0_0,bot_r_e1
+  bot_r_e2: mzi_gdsfactorypcomponen_a148a88f_0_0,bot_r_e2
+  bot_r_e3: mzi_gdsfactorypcomponen_a148a88f_0_0,bot_r_e3
+  bot_r_e4: mzi_gdsfactorypcomponen_a148a88f_0_0,bot_r_e4
+  in_o1: mzi_gdsfactorypcomponen_a148a88f_0_0,in_o1
+  ou_o1: mzi_gdsfactorypcomponen_a148a88f_0_0,ou_o1
+  top_l_e1: mzi_gdsfactorypcomponen_a148a88f_0_0,top_l_e1
+  top_l_e2: mzi_gdsfactorypcomponen_a148a88f_0_0,top_l_e2
+  top_l_e3: mzi_gdsfactorypcomponen_a148a88f_0_0,top_l_e3
+  top_l_e4: mzi_gdsfactorypcomponen_a148a88f_0_0,top_l_e4
+  top_r_e1: mzi_gdsfactorypcomponen_a148a88f_0_0,top_r_e1
+  top_r_e2: mzi_gdsfactorypcomponen_a148a88f_0_0,top_r_e2
+  top_r_e3: mzi_gdsfactorypcomponen_a148a88f_0_0,top_r_e3
+  top_r_e4: mzi_gdsfactorypcomponen_a148a88f_0_0,top_r_e4
+warnings:
+  electrical:
+    unconnected_ports:
+    - message: 12 unconnected electrical ports!
+      ports:
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e1_1_1
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e2_1_1
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e3_1_1
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e4_1_1
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e1_1_2
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e2_1_2
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e3_1_2
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e4_1_2
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e1_1_3
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e2_1_3
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e3_1_3
+      - array_gdsfactorypcompon_8765215d_185500_m10000,e4_1_3
+      values:
+      - - 145.5
+        - -10
+      - - 185.5
+        - 30
+      - - 225.5
+        - -10
+      - - 185.5
+        - -50
+      - - 245.5
+        - -10
+      - - 285.5
+        - 30
+      - - 325.5
+        - -10
+      - - 285.5
+        - -50
+      - - 345.5
+        - -10
+      - - 385.5
+        - 30
+      - - 425.5
+        - -10
+      - - 385.5
+        - -50

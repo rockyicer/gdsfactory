@@ -1,24 +1,15 @@
-function: cutback_component
 info:
   components: 80
-module: gdsfactory.components.cutback_component
-name: cutback_component_mirrorTrue
+name: cutback_component_gdsfa_dddf14d5
 settings:
-  bend180:
-    function: bend_euler
-    module: gdsfactory.components.bend_euler
-    settings:
-      angle: 180
+  bend180: bend_euler180
   cols: 4
-  component:
-    function: taper_from_csv
-  cross_section: xs_sc
+  component: taper_0p5_to_3_l36
+  cross_section: strip
   mirror: true
   mirror1: false
   mirror2: false
   port1: o1
   port2: o2
-  ports_map: null
   rows: 5
-  straight_length: null
-  straight_length_pair: null
+  straight: straight

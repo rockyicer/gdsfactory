@@ -1,17 +1,10 @@
-function: cutback_bend180
 info:
-  n_bends: 82
-module: gdsfactory.components.cutback_bend
-name: cutback_bend180
+  components: 82
+name: cutback_bend180_gdsfact_1e933a35
 settings:
   cols: 6
-  component:
-    function: bend_euler
-    module: gdsfactory.components.bend_euler
-    settings:
-      angle: 180
+  component: bend_euler180
   rows: 6
   spacing: 3
-  straight:
-    function: straight
-  straight_length: 5.0
+  straight: straight
+  straight_length: 5

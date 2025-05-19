@@ -1,20 +1,17 @@
-function: taper
 info:
-  length: 100.0
+  length: 100
   width1: 0.5
   width2: 0.2
-module: gdsfactory.components.taper
-name: taper_1db74a4f
+name: edge_coupler_silicon_gd_5718d84a
 settings:
-  cross_section: xs_sc
+  cross_section: strip
   length: 100
-  port: null
   port_names:
   - o1
   - o2
   port_types:
   - optical
-  - edge_te
+  - edge_coupler
   width1: 0.5
   width2: 0.2
   with_two_ports: true

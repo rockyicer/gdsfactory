@@ -1,6 +1,5 @@
-function: add_pads0
 info:
+  length: 101
   resistance: 0
-module: test_add_pads
 name: add_pads0
 settings: {}

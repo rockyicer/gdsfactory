@@ -1,13 +1,7 @@
-function: coupler90
 info: {}
-module: gdsfactory.components.coupler90
-name: coupler90
+name: coupler90_gdsfactorypco_36298ee4
 settings:
-  bend:
-    function: bend_euler
-  cross_section: xs_sc
-  cross_section_bend: null
+  bend: bend_euler
+  cross_section: strip
   gap: 0.2
-  radius: 10.0
-  straight:
-    function: straight
+  straight: straight

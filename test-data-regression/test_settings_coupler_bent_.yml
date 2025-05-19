@@ -1,9 +1,7 @@
-function: coupler_bent
 info: {}
-module: gdsfactory.components.coupler_bent
-name: coupler_bent
+name: coupler_bent_gdsfactory_8a1af51e
 settings:
-  cross_section: xs_sc
+  cross_section: strip
   gap: 0.2
   length: 8.6
   length_straight: 10

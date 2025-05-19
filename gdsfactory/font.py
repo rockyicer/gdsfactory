@@ -5,13 +5,16 @@ Adapted from PHIDL https://github.com/amccaugh/phidl/ by Adam McCaughan
 
 from __future__ import annotations
 
-import gdstk
+import freetype
 import numpy as np
+import numpy.typing as npt
 from matplotlib import font_manager
+from matplotlib.path import Path
 
+from gdsfactory.boolean import boolean
 from gdsfactory.component import Component
 
-_cached_fonts = {}
+_cached_fonts: dict[str, freetype.Face] = {}
 
 try:
     import freetype
@@ -27,11 +30,11 @@ except ImportError:
     )
 
 
-def _get_font_by_file(file):
+def _get_font_by_file(file: str) -> freetype.Face:
     """Load font file.
 
     Args:
-        file [str, BinaryIO]: Load a font face from a given file
+        file: Load a font face from a given file.
     """
     # Cache opened fonts
     if file in _cached_fonts:
@@ -43,11 +46,11 @@ def _get_font_by_file(file):
     return font_renderer
 
 
-def _get_font_by_name(name):
+def _get_font_by_name(name: str) -> freetype.Face:
     """Try to load a system font by name.
 
     Args:
-        name [str]: Load a system font
+        name: Load a system font.
     """
     try:
         font_file = font_manager.findfont(name, fallback_to_default=False)
@@ -60,14 +63,14 @@ def _get_font_by_name(name):
     return _get_font_by_file(font_file)
 
 
-def _get_glyph(font, letter):  # noqa: C901
+def _get_glyph(font: freetype.Face, letter: str) -> tuple[Component, float, float]:
     """Get a block reference to the given letter."""
     if not isinstance(letter, str) and len(letter) == 1:
         raise TypeError(f"Letter must be a string of length 1. Got: {letter!r}")
 
     if not isinstance(font, freetype.Face):
         raise TypeError(
-            "font {font!r} must be a freetype font face. "
+            f"font {font!r} must be a freetype font face. "
             "Load a font using _get_font_by_name first."
         )
 
@@ -75,7 +78,7 @@ def _get_glyph(font, letter):  # noqa: C901
         font.gds_glyphs = {}
 
     if letter in font.gds_glyphs:
-        return font.gds_glyphs[letter]
+        return font.gds_glyphs[letter]  # type: ignore[no-any-return]
 
     # Get the font name
     font_name = font.family_name.decode().replace(" ", "_")
@@ -90,121 +93,101 @@ def _get_glyph(font, letter):  # noqa: C901
 
     # Add polylines
     start, end = 0, -1
-    polylines = []
-    for contour in outline.contours:
-        start = end + 1
-        end = contour
+    VERTS, CODES = [], []
+    # Iterate over each contour
+    for i in range(len(outline.contours)):
+        end = outline.contours[i]
+        points = outline.points[start : end + 1]
+        points.append(points[0])
+        tags = outline.tags[start : end + 1]
+        tags.append(tags[0])
 
-        # Build up the letter as a curve
-        cpoint = start
-        curve = gdstk.Curve(points[cpoint], tolerance=0.001)
-        while cpoint <= end:
-            # Figure out what sort of point we are looking at
-            if tags[cpoint] & 1:
-                # We are at an on-curve control point. The next point may be
-                # another on-curve point, in which case we create a straight
-                # line interpolation, or it may be a quadratic or cubic
-                # bezier curve. But first we check if we are at the end of the array
-                if cpoint == end:
-                    ntag = tags[start]
-                    npoint = points[start]
-                else:
-                    ntag = tags[cpoint + 1]
-                    npoint = points[cpoint + 1]
-
-                # Then add the control points
-                if ntag & 1:
-                    curve.commands("L", *npoint)
-                    cpoint += 1
-                elif ntag & 2:
-                    # We are at a cubic bezier curve point
-                    if cpoint + 3 <= end:
-                        curve.commands("C", *points[cpoint + 1 : cpoint + 4].flatten())
-                    elif cpoint + 2 <= end:
-                        plist = list(points[cpoint + 1 : cpoint + 3].flatten())
-                        plist.extend(points[start])
-                        curve.commands("C", *plist)
-                    else:
-                        raise ValueError(
-                            "Missing bezier control points. We require at least"
-                            " two control points to get a cubic curve."
-                        )
-                    cpoint += 3
-                else:
-                    # Otherwise we're at a quadratic bezier curve point
-                    if cpoint + 2 > end:
-                        cpoint_2 = start
-                        end_tag = tags[start]
-                    else:
-                        cpoint_2 = cpoint + 2
-                        end_tag = tags[cpoint_2]
-                    p1 = points[cpoint + 1]
-                    p2 = points[cpoint_2]
-
-                    # Check if we are at a sequential control point. In that case,
-                    # p2 is actually the midpoint of p1 and p2.
-                    if end_tag & 1 == 0:
-                        p2 = (p1 + p2) / 2
-
-                    # Add the curve
-                    curve.commands("Q", p1[0], p1[1], p2[0], p2[1])
-                    cpoint += 2
+        segments = [
+            [
+                points[0],
+            ],
+        ]
+        for j in range(1, len(points)):
+            segments[-1].append(points[j])
+            if tags[j] & (1 << 0) and j < (len(points) - 1):
+                segments.append(
+                    [
+                        points[j],
+                    ]
+                )
+        verts = [
+            points[0],
+        ]
+        codes = [
+            Path.MOVETO,
+        ]
+        for segment in segments:
+            if len(segment) == 2:
+                verts.extend(segment[1:])
+                codes.extend([Path.LINETO])
+            elif len(segment) == 3:
+                verts.extend(segment[1:])
+                codes.extend([Path.CURVE3, Path.CURVE3])
             else:
-                if tags[cpoint] & 2:
-                    raise ValueError(
-                        "Sequential control points not valid for cubic splines."
-                    )
-                # We are at a quadratic sequential control point.
-                # Check if we're at the end of the segment
-                if cpoint == end:
-                    cpoint_1 = start
-                    end_tag = tags[start]
-                else:
-                    cpoint_1 = cpoint + 1
-                    end_tag = tags[cpoint_1]
+                verts.append(segment[1])
+                codes.append(Path.CURVE3)
+                for i in range(1, len(segment) - 2):
+                    A, B = segment[i], segment[i + 1]
+                    C = ((A[0] + B[0]) / 2.0, (A[1] + B[1]) / 2.0)
+                    verts.extend([C, B])
+                    codes.extend([Path.CURVE3, Path.CURVE3])
+                verts.append(segment[-1])
+                codes.append(Path.CURVE3)
+        VERTS.extend(verts)
+        CODES.extend(codes)
+        start = end + 1
 
-                p1 = points[cpoint]
-                p2 = points[cpoint_1]
-                # If we are at the beginning, this is a special case,
-                # we need to reset the starting position
-                if cpoint == start:
-                    p0 = points[end]
-                    if tags[end] & 1 == 0:
-                        # If the last point is also a control point, then the end is actually
-                        # halfway between here and the last point
-                        p0 = (p0 + p1) / 2
-                    # And reset the starting position of the spline
-                    curve = gdstk.Curve(*p0, tolerance=0.001)
-                else:
-                    # The first control point is at the midpoint of this control point and the
-                    # previous control point
-                    p0 = points[cpoint - 1]
-                    p0 = (p0 + p1) / 2
-
-                # Check if we are at a sequential control point again
-                if end_tag & 1 == 0:
-                    p2 = (p1 + p2) / 2
-
-                # And add the segment
-                curve.commands("Q", p1[0], p1[1], p2[0], p2[1])
-                cpoint += 1
-        polylines.append(gdstk.Polygon(curve.points()))
+    path = Path(VERTS, CODES)
+    polygons = path.to_polygons(closed_only=True)
+    # patch = PathPatch(path)
 
     # Construct the component
-    component = Component(block_name)
-    if polylines:
-        letter_polyline = polylines[0]
-        for polyline in polylines[1:]:
-            letter_polyline = gdstk.boolean(letter_polyline, polyline, "xor")
-        component.add_polygon(letter_polyline)
+    component = Component()
+
+    orientation = freetype.FT_Outline_Get_Orientation(outline._FT_Outline)
+    polygons_cw = [p for p in polygons if _polygon_orientation(np.array(p)) == 0]
+    polygons_ccw = [p for p in polygons if _polygon_orientation(np.array(p)) == 1]
+    c1 = Component()
+    c2 = Component()
+    for p in polygons_cw:
+        c1.add_polygon(np.array(p), layer=(1, 0))
+    for p in polygons_ccw:
+        c2.add_polygon(np.array(p), layer=(1, 0))
+    if orientation == 0:
+        # TrueType specification, fill the clockwise contour
+        component = boolean(c1, c2, operation="not", layer=(1, 0))
+    else:
+        # PostScript specification, fill the counterclockwise contour
+        component = boolean(c2, c1, operation="not", layer=(1, 0))
+
+    component.name = block_name
 
     # Cache the return value and return it
-    font.gds_glyphs[letter] = (component, glyph.advance.x / font.size.ascender)
-    return font.gds_glyphs[letter]
+    font.gds_glyphs[letter] = (component, glyph.advance.x, font.size.ascender)
+    return font.gds_glyphs[letter]  # type: ignore[no-any-return]
+
+
+def _polygon_orientation(vertices: npt.NDArray[np.float64]) -> int:
+    """Determine the orientation of a polygon."""
+    n = len(vertices)
+    if n < 3:
+        raise ValueError("A polygon must have at least 3 vertices")
+    s = 0
+    for i in range(n):
+        x1, y1 = vertices[i]
+        x2, y2 = vertices[(i + 1) % n]
+        s += (x2 - x1) * (y2 + y1)
+
+    return 0 if s > 0 else 1
 
 
 if __name__ == "__main__":
-    from gdsfactory.components.text_freetype import text_freetype
+    from gdsfactory.components import text_freetype
 
-    c = text_freetype("hello", font="Times New Roman")
-    c.show(show_ports=True)
+    c = text_freetype("abcd")
+    c.show()

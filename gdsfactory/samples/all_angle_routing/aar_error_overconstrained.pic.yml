@@ -16,10 +16,9 @@ placements:
     dx: 1000
     dy: -1000
 
-
 routes:
   bad_news:
-    routing_strategy: get_bundle_all_angle
+    routing_strategy: route_bundle_all_angle
     settings:
       steps:
         - dx: 1000  # exit angle of the first port + explicit x + y makes this route overconstrained

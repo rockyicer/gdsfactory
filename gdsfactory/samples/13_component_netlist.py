@@ -40,6 +40,8 @@ def netlist_yaml() -> Component:
 
     routes:
         optical:
+            settings:
+                cross_section: strip
             links:
                 mmi_short,o2: mmi_long,o3
 
@@ -57,4 +59,4 @@ def test_netlist_yaml_sample() -> None:
 
 if __name__ == "__main__":
     c = netlist_yaml()
-    c.show(show_ports=True)
+    c.show()

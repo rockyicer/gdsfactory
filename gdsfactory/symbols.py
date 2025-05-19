@@ -2,52 +2,24 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable
+from typing import Any, Protocol
 
-import gdstk
-from pydantic import validate_call
-
-from gdsfactory.cell import _F, cell_without_validator
+import gdsfactory as gf
 from gdsfactory.component import Component
-from gdsfactory.typings import LayerSpecs
+from gdsfactory.typings import LayerSpec, LayerSpecs
+
+_F = Callable[..., Component]
+
+symbol = gf.cell
 
 
-def symbol(func: _F, *args, **kwargs) -> _F:
-    """Decorator for Component symbols.
-
-    Wraps cell_without_validator
-    Validates type annotations with pydantic.
-
-    Implements a cache so that if a symbol has already been built
-    it will return the component from the cache directly.
-    This avoids 2 exact cells that are not references of the same cell
-    You can always over-ride this with `cache = False`.
-
-    When decorate your functions with @cell you get:
-
-    - CACHE: avoids creating duplicated cells.
-    - name: gives Components a unique name based on parameters.
-    - adds Component.info with default, changed and full component settings.
-
-    Keyword Args:
-        autoname (bool): if True renames component based on args and kwargs.
-        name (str): Optional (ignored when autoname=True).
-        cache (bool): returns component from the cache if it already exists.
-            if False creates a new component.
-            by default True avoids having duplicated cells with the same name.
-        info: updates component.info dict.
-        prefix: name_prefix, defaults to function name.
-        max_name_length: truncates name beyond some characters (32) with a hash.
-        decorator: function to run over the component.
-    """
-    if "prefix" not in kwargs:
-        prefix = f"SYMBOL_{func.__name__}"
-        kwargs["prefix"] = prefix
-    _wrapped = functools.partial(cell_without_validator(validate_call(func)), **kwargs)
-    _wrapped._symbol = True
-    return _wrapped
+class ToSymbol(Protocol):
+    def __call__(
+        self, component: Component, *args: Any, **kwargs: Any
+    ) -> Component: ...
 
 
-def symbol_from_cell(func: _F, to_symbol: Callable[[Component, ...], Component]) -> _F:
+def symbol_from_cell(func: _F, to_symbol: ToSymbol) -> _F:
     """Creates a symbol function from a component function.
 
     Args:
@@ -59,25 +31,32 @@ def symbol_from_cell(func: _F, to_symbol: Callable[[Component, ...], Component])
     """
 
     @functools.wraps(func)
-    def _symbol(*args, **kwargs):
+    def _symbol(*args: Any, **kwargs: Any) -> Component:
         component = func(*args, **kwargs)
-        symbol = to_symbol(component, prefix=f"SYMBOL_{func.__name__}")
-        return symbol
+        c_symbol = to_symbol(component, prefix=f"SYMBOL_{func.__name__}")
+        return c_symbol
 
-    _symbol._symbol = True
+    _symbol._symbol = True  # type: ignore[attr-defined]
     return _symbol
 
 
 @symbol
 def floorplan_with_block_letters(
-    component: Component, copy_layers: LayerSpecs = ("WG",)
+    component: Component,
+    copy_layers: LayerSpecs = ("WG",),
+    text_layer: LayerSpec = (2, 0),
+    bbox_layer: LayerSpec = (90, 0),
 ) -> Component:
-    """Returns symbol with same floorplan as component layout, function name \
+    """Returns symbol.
+
+    Keeps same floorplan as component layout, function name \
         and optionally shapes on layers copied from the original layout.
 
     Args:
         component: the layout component.
         copy_layers: if specified, copies layers from the layout into the symbol.
+        text_layer: the layer for the text.
+        bbox_layer: the layer for the bounding box.
 
     Returns:
         A component representing the symbol.
@@ -86,45 +65,59 @@ def floorplan_with_block_letters(
     import gdsfactory as gf
     from gdsfactory.components import rectangle, text
 
-    w, h = component.size
+    w = component.dsize_info.width
+    h = component.dsize_info.height
     sym = Component()
 
     # add floorplan box
-    bbox = sym << rectangle(size=(w, h), layer=(0, 0))
-    bbox.move((0, 0), destination=component.bbox[0])
+    bbox = sym << rectangle(size=(w, h), layer=bbox_layer)
+    bbox.x = component.x
+    bbox.y = component.y
 
     # add text, fit to box with specified margin
     margin = 0.2
     max_w, max_h = w * (1 - margin), h * (1 - margin)
     text_init_size = 3.0
     text_init = text(
-        component.function_name,
+        component.function_name or "",
         size=text_init_size,
-        layer=(2, 0),
+        layer=text_layer,
         justify="center",
     )
-    w_text, h_text = text_init.size
+    w_text = text_init.dsize_info.width
+    h_text = text_init.dsize_info.height
+
     w_scaling = max_w / w_text
     h_scaling = max_h / h_text
     scaling = min(w_scaling, h_scaling)
     text_size = text_init_size * scaling
     text_component = text(
-        component.function_name, size=text_size, layer=(2, 0), justify="center"
+        component.function_name or "",
+        size=text_size,
+        layer=text_layer,
+        justify="center",
     )
 
     text = sym << text_component
-    text.move(text.center, destination=bbox.center)
+    text.x = component.x
+    text.y = component.y
 
-    # add ports
     sym.add_ports(component.ports)
 
     # add specified layers from original layout
     if copy_layers:
         for layer in copy_layers:
             layer = gf.get_layer(layer)
-            polys = component.get_polygons(by_spec=layer, as_array=False)
-            # run OR to simplify shapes
-            polys = gdstk.boolean(polys, [], "or", layer=layer[0], datatype=layer[1])
-            sym.add_polygon(polys)
+            polys = component.get_polygons(merge=True)[layer]
+            for poly in polys:
+                sym.add_polygon(poly, layer=layer)
 
     return sym
+
+
+if __name__ == "__main__":
+    import gdsfactory as gf
+
+    c = gf.c.mmi1x2()
+    s = floorplan_with_block_letters(c)
+    s.show()

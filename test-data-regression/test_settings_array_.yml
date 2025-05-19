@@ -1,22 +1,11 @@
-function: array
-info:
-  layer:
-  - 49
-  - 0
-  size:
-  - 100.0
-  - 100.0
-  xsize: 100.0
-  ysize: 100.0
-module: gdsfactory.components.array_component
-name: pad_array$1
+info: {}
+name: array_gdsfactorypcompon_b1820754
 settings:
   add_ports: true
+  auto_rename_ports: false
   centered: false
+  column_pitch: 150
   columns: 6
   component: pad
+  row_pitch: 150
   rows: 1
-  size: null
-  spacing:
-  - 150.0
-  - 150.0

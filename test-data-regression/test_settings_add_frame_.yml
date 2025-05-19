@@ -1,11 +1,7 @@
-function: add_frame
 info: {}
-module: gdsfactory.components.align
-name: add_frame
+name: add_frame_gdsfactorypco_aab7fa7f
 settings:
-  component:
-    function: rectangle
+  component: rectangle
   layer: WG
-  layers: null
-  spacing: 10.0
-  width: 10.0
+  spacing: 10
+  width: 10

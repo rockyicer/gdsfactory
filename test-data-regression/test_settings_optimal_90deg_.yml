@@ -1,7 +1,5 @@
-function: optimal_90deg
 info: {}
-module: gdsfactory.components.optimal_90deg
-name: optimal_90deg
+name: optimal_90deg_gdsfactor_17ade196
 settings:
   layer:
   - 1

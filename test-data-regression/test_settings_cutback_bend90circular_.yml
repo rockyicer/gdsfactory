@@ -1,14 +1,10 @@
-function: cutback_bend90
 info:
-  n_bends: 144
-module: gdsfactory.components.cutback_bend
-name: cutback_bend90_d89ef24e
+  components: 144
+name: cutback_bend90_gdsfacto_3a512cfc
 settings:
   cols: 6
-  component:
-    function: bend_circular
+  component: bend_circular
   rows: 6
   spacing: 5
-  straight:
-    function: straight
-  straight_length: 5.0
+  straight: straight
+  straight_length: 5

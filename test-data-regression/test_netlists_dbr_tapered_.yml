@@ -1,0 +1,101 @@
+instances:
+  array_gdsfactorypcompon_af4a389c_m24437_m500:
+    component: array
+    info: {}
+    settings:
+      add_ports: true
+      auto_rename_ports: false
+      centered: false
+      column_pitch: 0.85
+      columns: 58
+      component: rectangle_gdsfactorypco_a02634c4
+      post_process: null
+      row_pitch: 150
+      rows: 1
+      size: null
+  straight_gdsfactorypcom_2c3216f5_m5000_0:
+    component: straight
+    info:
+      length: 10
+      route_info_length: 10
+      route_info_type: xs_d9e914be
+      route_info_weight: 10
+      route_info_xs_d9e914be_length: 10
+      width: 0.4
+    settings:
+      cross_section: strip
+      length: 10
+      npoints: 2
+      width: 0.4
+  taper_gdsfactorypcompon_66863c4a_5000_0:
+    component: taper
+    info:
+      length: 20
+      width1: 0.4
+      width2: 1
+    settings:
+      cross_section: strip
+      layer: null
+      length: 20
+      port: null
+      port_names:
+      - o1
+      - o2
+      port_types:
+      - optical
+      - optical
+      width1: 0.4
+      width2: 1
+      with_bbox: true
+      with_two_ports: true
+  taper_gdsfactorypcompon_9fedc536_m25000_0:
+    component: taper
+    info:
+      length: 20
+      width1: 1
+      width2: 0.4
+    settings:
+      cross_section: strip
+      layer: null
+      length: 20
+      port: null
+      port_names:
+      - o1
+      - o2
+      port_types:
+      - optical
+      - optical
+      width1: 1
+      width2: 0.4
+      with_bbox: true
+      with_two_ports: true
+name: dbr_tapered_gdsfactoryp_8f033274
+nets:
+- p1: straight_gdsfactorypcom_2c3216f5_m5000_0,o1
+  p2: taper_gdsfactorypcompon_9fedc536_m25000_0,o2
+- p1: straight_gdsfactorypcom_2c3216f5_m5000_0,o2
+  p2: taper_gdsfactorypcompon_66863c4a_5000_0,o1
+placements:
+  array_gdsfactorypcompon_af4a389c_m24437_m500:
+    mirror: false
+    rotation: 0
+    x: -24.437
+    y: -0.5
+  straight_gdsfactorypcom_2c3216f5_m5000_0:
+    mirror: false
+    rotation: 0
+    x: -5
+    y: 0
+  taper_gdsfactorypcompon_66863c4a_5000_0:
+    mirror: false
+    rotation: 0
+    x: 5
+    y: 0
+  taper_gdsfactorypcompon_9fedc536_m25000_0:
+    mirror: false
+    rotation: 0
+    x: -25
+    y: 0
+ports:
+  o1: taper_gdsfactorypcompon_9fedc536_m25000_0,o1
+  o2: taper_gdsfactorypcompon_66863c4a_5000_0,o2

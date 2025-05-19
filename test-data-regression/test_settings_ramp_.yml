@@ -1,9 +1,7 @@
-function: ramp
 info: {}
-module: gdsfactory.components.ramp
-name: ramp
+name: ramp_gdsfactorypcompone_70a7adb6
 settings:
   layer: WG
-  length: 10.0
-  width1: 5.0
-  width2: 8.0
+  length: 10
+  width1: 5
+  width2: 8

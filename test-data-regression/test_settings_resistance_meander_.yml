@@ -1,13 +1,10 @@
-function: resistance_meander
 info: {}
-module: gdsfactory.components.resistance_meander
-name: resistance_meander
+name: resistance_meander_gdsf_c0ce6264
 settings:
-  gnd_layer: MTOP
   num_squares: 1000
   pad_layer: MTOP
   pad_size:
-  - 50.0
-  - 50.0
+  - 50
+  - 50
   res_layer: MTOP
-  width: 1.0
+  width: 1

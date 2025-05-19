@@ -1,4 +1,3 @@
-# type: ignore
 """You can define a path as list of points.
 
 To create a component you need to extrude the path with a cross-section.
@@ -7,37 +6,36 @@ To create a component you need to extrude the path with a cross-section.
 from __future__ import annotations
 
 import hashlib
-import sys
 import warnings
-from collections.abc import Callable, Iterable
-from functools import partial
+from collections.abc import Callable, Sequence
+from functools import partial, wraps
 from inspect import getmembers, signature
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any, ParamSpec, Protocol, Self, TypeAlias
 
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field, field_serializer
+from kfactory import DCrossSection, SymmetricalCrossSection, logger
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    field_serializer,
+    model_validator,
+)
 
-from gdsfactory.config import CONF, ErrorType, logger
-
-if TYPE_CHECKING:
-    from gdsfactory.component import Component
+from gdsfactory import typings
+from gdsfactory.component import Component
+from gdsfactory.config import CONF, ErrorType
 
 nm = 1e-3
 
-Layer = tuple[int, int]
-Layers = tuple[Layer, ...]
-WidthTypes = Literal["sine", "linear", "parabolic"]
 
-LayerSpec = Layer | str
-LayerSpecs = list[LayerSpec] | tuple[LayerSpec, ...]
-
-Floats = tuple[float, ...]
-port_names_electrical = ("e1", "e2")
-port_types_electrical = ("electrical", "electrical")
-cladding_layers_optical = None
-cladding_offsets_optical = None
-cladding_simplify_optical = None
+port_names_electrical: typings.IOPorts = ("e1", "e2")
+port_types_electrical: typings.IOPorts = ("electrical", "electrical")
+cladding_layers_optical: typings.Layers | None = None
+cladding_offsets_optical: typings.Floats | None = None
+cladding_simplify_optical: typings.Floats | None = None
 
 deprecated = {
     "info",
@@ -90,6 +88,8 @@ class Section(BaseModel):
         simplify: Optional Tolerance value for the simplification algorithm. \
                 All points that can be removed without changing the resulting. \
                 polygon by more than the value listed here will be removed.
+        width_function: parameterized function from 0 to 1.
+        offset_function: parameterized function from 0 to 1.
 
     .. code::
 
@@ -112,24 +112,43 @@ class Section(BaseModel):
     width: float
     offset: float = 0
     insets: tuple[float, float] | None = None
-    layer: LayerSpec | None = None
+    layer: typings.LayerSpec
     port_names: tuple[str | None, str | None] = (None, None)
     port_types: tuple[str, str] = ("optical", "optical")
     name: str | None = None
     hidden: bool = False
     simplify: float | None = None
 
-    width_function: Callable | None = Field(default=None)
-    offset_function: Callable | None = Field(default=None)
+    width_function: typings.WidthFunction | None = None
+    offset_function: typings.OffsetFunction | None = None
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
-    @field_serializer("width_function", "offset_function")
-    def serialize_functions(self, func: Callable | None) -> str | None:
+    @model_validator(mode="before")
+    @classmethod
+    def generate_default_name(cls, data: Any) -> Any:
+        if not data.get("name"):
+            h = hashlib.md5(str(data).encode()).hexdigest()[:8]
+            data["name"] = f"s_{h}"
+        return data
+
+    @field_serializer("width_function")
+    def serialize_width_function(
+        self, func: typings.WidthFunction | None
+    ) -> str | None:
         if func is None:
             return None
         t_values = np.linspace(0, 1, 11)
         return ",".join([str(round(width, 3)) for width in func(t_values)])
+
+    @field_serializer("offset_function")
+    def serialize_offset_function(
+        self, func: typings.OffsetFunction | None
+    ) -> str | None:
+        if func is None:
+            return None
+        t_values = np.linspace(0, 1, 11)
+        return ",".join([str(round(func(offset), 3)) for offset in t_values])
 
 
 class ComponentAlongPath(BaseModel):
@@ -143,10 +162,12 @@ class ComponentAlongPath(BaseModel):
         y_offset: offset in y direction (um).
     """
 
-    component: object
+    component: Component
     spacing: float
     padding: float = 0.0
     offset: float = 0.0
+
+    model_config = ConfigDict(extra="forbid", frozen=True, arbitrary_types_allowed=True)
 
 
 Sections = tuple[Section, ...]
@@ -193,16 +214,16 @@ class CrossSection(BaseModel):
 
     """
 
-    sections: tuple[Section, ...] = Field(default_factory=tuple)
+    sections: Sections = Field(default_factory=tuple)
     components_along_path: tuple[ComponentAlongPath, ...] = Field(default_factory=tuple)
     radius: float | None = None
     radius_min: float | None = None
-    bbox_layers: LayerSpecs | None = None
-    bbox_offsets: Floats | None = None
+    bbox_layers: typings.LayerSpecs | None = None
+    bbox_offsets: typings.Floats | None = None
 
-    model_config = ConfigDict(
-        extra="ignore", frozen=True
-    )  # TODO: change to forbid after remove deprecation
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    _name: str = PrivateAttr("")
+    _dcross_section: DCrossSection | None = PrivateAttr()
 
     def validate_radius(
         self, radius: float, error_type: ErrorType | None = None
@@ -220,10 +241,12 @@ class CrossSection(BaseModel):
                 raise ValueError(message)
 
             elif error_type == ErrorType.WARNING:
-                warnings.warn(message)
+                warnings.warn(message, stacklevel=3)
 
     @property
     def name(self) -> str:
+        if self._name:
+            return self._name
         h = hashlib.md5(str(self).encode()).hexdigest()[:8]
         return f"xs_{h}"
 
@@ -232,28 +255,35 @@ class CrossSection(BaseModel):
         return self.sections[0].width
 
     @property
-    def layer(self) -> LayerSpec:
+    def layer(self) -> typings.LayerSpec:
         return self.sections[0].layer
 
-    def append_sections(self, sections: Sections) -> CrossSection:
-        sections = self.sections + tuple(sections)
-        return self.model_copy(update={"sections": sections})
+    def append_sections(self, sections: Sections) -> Self:
+        """Append sections to the cross_section."""
+        new_sections = list(self.sections) + list(sections)
+        return self.model_copy(update={"sections": tuple(new_sections)})
 
     def __getitem__(self, key: str) -> Section:
+        """Returns the section with the given name."""
         key_to_section = {s.name: s for s in self.sections}
         if key in key_to_section:
             return key_to_section[key]
         else:
             raise KeyError(f"{key} not in {list(key_to_section.keys())}")
 
+    @property
+    def hash(self) -> str:
+        """Returns a hash of the cross_section."""
+        return hashlib.md5(str(self).encode()).hexdigest()
+
     def copy(
         self,
         width: float | None = None,
-        layer: LayerSpec | None = None,
-        width_function: Callable | None = None,
-        offset_function: Callable | None = None,
-        sections: tuple[Section, ...] | None = None,
-        **kwargs,
+        layer: typings.LayerSpec | None = None,
+        width_function: typings.WidthFunction | None = None,
+        offset_function: typings.OffsetFunction | None = None,
+        sections: Sections | None = None,
+        **kwargs: Any,
     ) -> CrossSection:
         """Returns copy of the cross_section with new parameters.
 
@@ -263,6 +293,7 @@ class CrossSection(BaseModel):
             width_function: parameterized function from 0 to 1.
             offset_function: parameterized function from 0 to 1.
             sections: a tuple of Sections, to replace the original sections
+            kwargs: additional parameters to update.
 
         Keyword Args:
             sections: tuple of Sections(width, offset, layer, ports).
@@ -270,17 +301,23 @@ class CrossSection(BaseModel):
             radius: route bend radius (um).
             bbox_layers: layer to add as bounding box.
             bbox_offsets: offset to add to the bounding box.
+            _name: name of the cross_section.
 
         """
         for kwarg in kwargs:
             if kwarg not in dict(self):
                 raise ValueError(f"{kwarg!r} not in CrossSection")
 
+        xs_original = self
+
         if width_function or offset_function or width or layer or sections:
             if sections is None:
-                sections = self.sections
-            sections = [s.model_copy() for s in sections]
-            sections[0] = sections[0].model_copy(
+                section_list = list(self.sections)
+            else:
+                section_list = list(sections)
+
+            section_list = [s.model_copy() for s in section_list]
+            section_list[0] = section_list[0].model_copy(
                 update={
                     "width_function": width_function,
                     "offset_function": offset_function,
@@ -288,40 +325,47 @@ class CrossSection(BaseModel):
                     "layer": layer or self.layer,
                 }
             )
-            changed_width_layer_or_offset = (
-                width_function or offset_function or width or layer
-            )
-            if changed_width_layer_or_offset and len(sections) > 1:
-                warnings.warn(
-                    "CrossSection.copy() only modifies the attributes of the first section.",
-                    stacklevel=2,
-                )
-            return self.model_copy(update={"sections": tuple(sections), **kwargs})
-        return self.model_copy(update=kwargs)
+            xs = self.model_copy(update={"sections": tuple(section_list), **kwargs})
+            if xs != xs_original:
+                xs._name = f"xs_{xs.hash}"
+            return xs
+
+        xs = self.model_copy(update=kwargs)
+        if xs != xs_original:
+            xs._name = f"xs_{xs.hash}"
+        return xs
 
     def mirror(self) -> CrossSection:
         """Returns a mirrored copy of the cross_section."""
         sections = [s.model_copy(update=dict(offset=-s.offset)) for s in self.sections]
         return self.model_copy(update={"sections": tuple(sections)})
 
-    def add_pins(self, component: Component, *args, **kwargs) -> Component:
-        """Add pins to a target component according to :class:`CrossSection`.
-        Args and kwargs are passed to the function defined by the `add_pins_function_name`.
-        """
-        warnings.warn(
-            "CrossSection.add_pins() is deprecated. @gf.cell(post_process=[gf.add_pins]) instead.",
-            stacklevel=2,
-        )
-        return component
+    # def apply_enclosure(self, component: Component) -> None:
+    #     """Apply enclosure to a target component according to :class:`CrossSection`."""
+
+    #     enclosure = kf.LayerEnclosure(
+    #         dsections=[(layer_tuple, layer_offset) for zip(self.bbox_layers, self.bbox_offsets)],
+    #         main_layer=LAYER.SLAB90,
+    #         name="enclosures",
+    #         kcl=kf.kcl,
+    #     )
+    #     kf.kcl.layer_enclosures = kf.kcell.LayerEnclosureModel(
+    #         enclosure_map=dict(enclosure_rc=enclosure_rc)
+    #     )
+
+    #     kf.kcl.enclosure = kf.DKCellEnclosure(
+    #         enclosures=[enclosure_rc],
+    #     )
+    #     component.kcl.enclosure.apply_minkowski_y(component)
 
     def add_bbox(
         self,
-        component,
+        component: typings.AnyComponentT,
         top: float | None = None,
         bottom: float | None = None,
         right: float | None = None,
         left: float | None = None,
-    ) -> Component:
+    ) -> typings.AnyComponentT:
         """Add bounding box layers to a component.
 
         Args:
@@ -335,7 +379,7 @@ class CrossSection(BaseModel):
 
         c = component
         if self.bbox_layers and self.bbox_offsets:
-            padding = []
+            padding: list[list[typings.Coordinate]] = []
             for offset in self.bbox_offsets:
                 points = get_padding_points(
                     component=c,
@@ -366,10 +410,10 @@ class CrossSection(BaseModel):
         return xmin, xmax
 
 
-CrossSectionSpec = CrossSection | str | dict[str, Any] | Callable[..., CrossSection]
+CrossSection.model_rebuild()
 
 
-class Transition(CrossSection):
+class Transition(BaseModel, arbitrary_types_allowed=True):
     """Waveguide information to extrude a path between two CrossSection.
 
     cladding_layers follow path shape
@@ -377,51 +421,93 @@ class Transition(CrossSection):
     Parameters:
         cross_section1: input cross_section.
         cross_section2: output cross_section.
-        width_type: sine or linear. Sets the type of width transition used if widths \
-                are different between the two input CrossSections.
+        width_type: 'sine', 'linear', 'parabolic' or Callable. Sets the type of width \
+                transition used if widths are different between the two input CrossSections.
+        offset_type: 'sine', 'linear', 'parabolic' or Callable. Sets the type of offset \
+                transition used if offsets are different between the two input CrossSections.
     """
 
     cross_section1: CrossSectionSpec
     cross_section2: CrossSectionSpec
-    width_type: WidthTypes | Callable = "sine"
+    width_type: typings.WidthTypes | Callable[[float, float, float], float] = "sine"
+    offset_type: typings.WidthTypes | Callable[[float, float, float], float] = "sine"
 
     @field_serializer("width_type")
-    def serialize_width(self, width_type: WidthTypes | Callable) -> str | None:
+    def serialize_width(
+        self,
+        width_type: typings.WidthTypes | Callable[[float, float, float], float],
+    ) -> str:
         if isinstance(width_type, str):
             return width_type
+        raise NotImplementedError("TODO")
         t_values = np.linspace(0, 1, 10)
         return ",".join(
             [str(round(width, 3)) for width in width_type(t_values, *self.width)]
         )
 
-    @property
-    def width(self) -> tuple[float, float]:
-        return (
-            self.cross_section1.sections[0].width,
-            self.cross_section2.sections[0].width,
-        )
 
-    @property
-    def layer(self) -> LayerSpec:
-        return self.cross_section1.sections[0].layer
+CrossSectionFactory: TypeAlias = Callable[..., "CrossSection"]
+CrossSectionSpec: TypeAlias = (
+    CrossSection
+    | str
+    | dict[str, Any]
+    | CrossSectionFactory
+    | SymmetricalCrossSection
+    | DCrossSection
+)
+cross_sections: dict[str, CrossSectionFactory] = {}
+_cross_section_default_names: dict[str, str] = {}
+
+P = ParamSpec("P")
+
+
+class CrossSectionCallable(Protocol[P]):
+    __name__: str
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> CrossSection: ...
+
+
+def xsection(func: CrossSectionCallable[P]) -> CrossSectionCallable[P]:
+    """Decorator to register a cross section function.
+
+    Ensures that the cross-section name matches the name of the function that generated it when created using default parameters
+
+    .. code-block:: python
+
+        @xsection
+        def xs_sc(width=TECH.width_sc, radius=TECH.radius_sc):
+            return gf.cross_section.cross_section(width=width, radius=radius)
+    """
+    default_xs = func()  # type: ignore[call-arg]
+    _cross_section_default_names[default_xs.name] = func.__name__
+
+    @wraps(func)
+    def newfunc(*args: P.args, **kwargs: P.kwargs) -> CrossSection:
+        xs = func(*args, **kwargs)
+        if xs.name in _cross_section_default_names:
+            xs._name = _cross_section_default_names[xs.name]
+        return xs
+
+    cross_sections[func.__name__] = newfunc
+    return newfunc
 
 
 def cross_section(
     width: float = 0.5,
     offset: float = 0,
-    layer: LayerSpec | None = "WG",
-    sections: tuple[Section, ...] | None = None,
-    port_names: tuple[str, str] = ("o1", "o2"),
-    port_types: tuple[str, str] = ("optical", "optical"),
-    bbox_layers: LayerSpecs | None = None,
-    bbox_offsets: Floats | None = None,
-    cladding_layers: LayerSpecs | None = None,
-    cladding_offsets: Floats | None = None,
-    cladding_simplify: Floats | None = None,
+    layer: typings.LayerSpec = "WG",
+    sections: Sections | None = None,
+    port_names: typings.IOPorts = ("o1", "o2"),
+    port_types: typings.IOPorts = ("optical", "optical"),
+    bbox_layers: typings.LayerSpecs | None = None,
+    bbox_offsets: typings.Floats | None = None,
+    cladding_layers: typings.LayerSpecs | None = None,
+    cladding_offsets: typings.Floats | None = None,
+    cladding_simplify: typings.Floats | None = None,
+    cladding_centers: typings.Floats | None = None,
     radius: float | None = 10.0,
     radius_min: float | None = None,
     main_section_name: str = "_default",
-    **kwargs,
 ) -> CrossSection:
     """Return CrossSection.
 
@@ -439,6 +525,7 @@ def cross_section(
         cladding_simplify: Optional Tolerance value for the simplification algorithm. \
                 All points that can be removed without changing the resulting. \
                 polygon by more than the value listed here will be removed.
+        cladding_centers: center offset for each cladding layer. Defaults to 0.
         radius: routing bend radius (um).
         radius_min: min acceptable bend radius.
         main_section_name: name of the main section. Defaults to _default
@@ -481,36 +568,39 @@ def cross_section(
            │                                                            │
            └────────────────────────────────────────────────────────────┘
     """
-    sections = list(sections or [])
-
-    for k in kwargs.keys():
-        if k in deprecated_routing:
-            warnings.warn(
-                f"{k} is deprecated. Pass this parameter to the routing function instead.",
-                stacklevel=2,
-            )
-        if k in deprecated_pins:
-            warnings.warn(
-                f"{k} is deprecated. You can decorate the @gf.cell(post_process=) instead.",
-                stacklevel=2,
-            )
-        elif k in deprecated:
-            warnings.warn(f"{k} is deprecated.", stacklevel=2)
-
+    section_list: list[Section] = list(sections or [])
+    cladding_simplify_not_none: list[float | None] | None = None
+    cladding_offsets_not_none: list[float] | None = None
+    cladding_centers_not_none: list[float] | None = None
     if cladding_layers:
-        cladding_simplify = cladding_simplify or (None,) * len(cladding_layers)
-        cladding_offsets = cladding_offsets or (0,) * len(cladding_layers)
+        cladding_simplify_not_none = list(
+            cladding_simplify or (None,) * len(cladding_layers)
+        )
+        cladding_offsets_not_none = list(
+            cladding_offsets or (0,) * len(cladding_layers)
+        )
+        cladding_centers_not_none = list(cladding_centers or [0] * len(cladding_layers))
 
         if (
             len(
-                {len(x) for x in (cladding_layers, cladding_offsets, cladding_simplify)}
+                {
+                    len(x)
+                    for x in (
+                        cladding_layers,
+                        cladding_offsets_not_none,
+                        cladding_simplify_not_none,
+                        cladding_centers_not_none,
+                    )
+                }
             )
             > 1
         ):
             raise ValueError(
-                f"{cladding_layers=}, {cladding_offsets=}, {cladding_simplify=} must have same length"
+                f"{len(cladding_layers)=}, "
+                f"{len(cladding_offsets_not_none)=}, "
+                f"{len(cladding_simplify_not_none)=}, "
+                f"{len(cladding_centers_not_none)=} must have same length"
             )
-
     s = [
         Section(
             width=width,
@@ -520,13 +610,29 @@ def cross_section(
             port_types=port_types,
             name=main_section_name,
         )
-    ] + sections
+    ] + section_list
 
-    if cladding_layers:
+    if (
+        cladding_layers
+        and cladding_offsets_not_none
+        and cladding_simplify_not_none
+        and cladding_centers_not_none
+    ):
         s += [
-            Section(width=width + 2 * offset, layer=layer, simplify=simplify)
-            for layer, offset, simplify in zip(
-                cladding_layers, cladding_offsets, cladding_simplify
+            Section(
+                width=width + 2 * offset,
+                layer=layer,
+                simplify=simplify,
+                offset=center,
+                name=f"cladding_{i}",
+            )
+            for i, (layer, offset, simplify, center) in enumerate(
+                zip(
+                    cladding_layers,
+                    cladding_offsets_not_none,
+                    cladding_simplify_not_none,
+                    cladding_centers_not_none,
+                )
             )
         ]
     return CrossSection(
@@ -541,71 +647,187 @@ def cross_section(
 radius_nitride = 20
 radius_rib = 20
 
-strip = partial(cross_section, radius=10, radius_min=5)
 
-rib = partial(
-    strip,
-    sections=(Section(width=6, layer="SLAB90", name="slab", simplify=50 * nm),),
-    radius=radius_rib,
-    radius_min=radius_rib,
-)
-rib2 = partial(
-    strip,
-    cladding_layers=("SLAB90",),
-    cladding_offsets=(3,),
-    cladding_simplify=(50 * nm,),
-    radius=radius_rib,
-    radius_min=radius_rib,
-)
-rib_bbox = partial(
-    strip,
-    bbox_layers=("SLAB90",),
-    bbox_offsets=(3,),
-    radius=radius_rib,
-    radius_min=radius_rib,
-)
-nitride = partial(
-    strip,
-    layer="WGN",
-    width=1.0,
-    radius=radius_nitride,
-    radius_min=radius_nitride,
-)
-strip_rib_tip = partial(
-    strip,
-    sections=(Section(width=0.2, layer="SLAB90", name="slab"),),
-)
-# fix under hre
-strip_nitride_tip = partial(
-    nitride,
-    sections=(
-        Section(width=0.2, layer="WGN", name="tip_nitride"),
-        Section(width=0.1, layer="WG", name="tip_silicon"),
-    ),
-)
-strip_nitride_silicon_tip = partial(
-    strip,
-    sections=(
-        Section(width=0.1, layer="WGN", name="tip_nitride"),
-        Section(width=0.2, layer="WG", name="tip_silicon"),
-    ),
-)
-strip_sc_tip = partial(
-    nitride,
-    sections=(Section(width=0.2, layer="WG", name="tip"),),
-)
-# L shaped waveguide (slab only on one side of the core)
-l_wg = partial(
-    strip,
-    sections=(Section(width=4, layer="SLAB90", name="slab", offset=-2 - 0.25),),
-)
+@xsection
+def strip(
+    width: float = 0.5,
+    layer: typings.LayerSpec = "WG",
+    radius: float = 10.0,
+    radius_min: float = 5,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Strip cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        radius_min=radius_min,
+        **kwargs,
+    )
 
 
+@xsection
+def strip_no_ports(
+    width: float = 0.5,
+    layer: typings.LayerSpec = "WG",
+    radius: float = 10.0,
+    radius_min: float = 5,
+    port_names: typings.IOPorts = ("", ""),
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Strip cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        radius_min=radius_min,
+        port_names=port_names,
+        **kwargs,
+    )
+
+
+@xsection
+def rib(
+    width: float = 0.5,
+    layer: typings.LayerSpec = "WG",
+    radius: float = radius_rib,
+    radius_min: float | None = None,
+    cladding_layers: typings.LayerSpecs = ("SLAB90",),
+    cladding_offsets: typings.Floats = (3,),
+    cladding_simplify: typings.Floats = (50 * nm,),
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Rib cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        radius_min=radius_min,
+        cladding_layers=cladding_layers,
+        cladding_offsets=cladding_offsets,
+        cladding_simplify=cladding_simplify,
+        **kwargs,
+    )
+
+
+@xsection
+def rib_bbox(
+    width: float = 0.5,
+    layer: typings.LayerSpec = "WG",
+    radius: float = radius_rib,
+    radius_min: float | None = None,
+    bbox_layers: typings.LayerSpecs = ("SLAB90",),
+    bbox_offsets: typings.Floats = (3,),
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Rib cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        radius_min=radius_min,
+        bbox_layers=bbox_layers,
+        bbox_offsets=bbox_offsets,
+        **kwargs,
+    )
+
+
+@xsection
+def rib2(
+    width: float = 0.5,
+    layer: typings.LayerSpec = "WG",
+    layer_slab: typings.LayerSpec = "SLAB90",
+    radius: float = radius_rib,
+    radius_min: float | None = None,
+    width_slab: float = 6,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Rib cross_section."""
+    sections = (
+        Section(width=width_slab, layer=layer_slab, name="slab", simplify=50 * nm),
+    )
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        radius_min=radius_min,
+        sections=sections,
+        **kwargs,
+    )
+
+
+@xsection
+def nitride(
+    width: float = 1.0,
+    layer: typings.LayerSpec = "WGN",
+    radius: float = radius_nitride,
+    radius_min: float | None = None,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Strip cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        radius_min=radius_min,
+        **kwargs,
+    )
+
+
+@xsection
+def strip_rib_tip(
+    width: float = 0.5,
+    width_tip: float = 0.2,
+    layer: typings.LayerSpec = "WG",
+    layer_slab: typings.LayerSpec = "SLAB90",
+    radius: float = 10.0,
+    radius_min: float | None = 5,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Strip cross_section."""
+    sections = (Section(width=width_tip, layer=layer_slab, name="slab"),)
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        radius_min=radius_min,
+        sections=sections,
+        **kwargs,
+    )
+
+
+@xsection
+def strip_nitride_tip(
+    width: float = 1.0,
+    layer: typings.LayerSpec = "WGN",
+    layer_silicon: typings.LayerSpec = "WG",
+    width_tip_nitride: float = 0.2,
+    width_tip_silicon: float = 0.1,
+    radius: float = radius_nitride,
+    radius_min: float | None = None,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Strip cross_section."""
+    sections = (
+        Section(width=width_tip_nitride, layer=layer, name="tip_nitride"),
+        Section(width=width_tip_silicon, layer=layer_silicon, name="tip_silicon"),
+    )
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        radius_min=radius_min,
+        sections=sections,
+        **kwargs,
+    )
+
+
+@xsection
 def slot(
     width: float = 0.5,
-    layer: LayerSpec = "WG",
+    layer: typings.LayerSpec = "WG",
     slot_width: float = 0.04,
-    sections: tuple[Section, ...] | None = None,
+    sections: Sections | None = None,
 ) -> CrossSection:
     """Return CrossSection Slot (with an etched region in the center).
 
@@ -630,30 +852,37 @@ def slot(
     rail_width = (width - slot_width) / 2
     rail_offset = (rail_width + slot_width) / 2
 
-    sections = sections or ()
-    sections += (
-        Section(width=rail_width, offset=rail_offset, layer=layer, name="left_rail"),
-        Section(width=rail_width, offset=-rail_offset, layer=layer, name="right rail"),
+    section_list: list[Section] = list(sections or [])
+    section_list.extend(
+        [
+            Section(
+                width=rail_width, offset=rail_offset, layer=layer, name="left_rail"
+            ),
+            Section(
+                width=rail_width, offset=-rail_offset, layer=layer, name="right rail"
+            ),
+        ]
     )
 
     return strip(
         width=width,
-        layer=None,
+        layer="WG_ABSTRACT",
         sections=sections,
     )
 
 
+@xsection
 def rib_with_trenches(
     width: float = 0.5,
     width_trench: float = 2.0,
     slab_offset: float | None = 0.3,
     width_slab: float | None = None,
     simplify_slab: float | None = None,
-    layer: LayerSpec | None = "WG",
-    layer_trench: LayerSpec = "DEEP_ETCH",
-    wg_marking_layer: LayerSpec | None = None,
-    sections: tuple[Section, ...] | None = None,
-    **kwargs,
+    layer: typings.LayerSpec = "WG",
+    layer_trench: typings.LayerSpec = "DEEP_ETCH",
+    wg_marking_layer: typings.LayerSpec = "WG_ABSTRACT",
+    sections: Sections | None = None,
+    **kwargs: Any,
 ) -> CrossSection:
     """Return CrossSection of rib waveguide defined by trenches.
 
@@ -671,6 +900,7 @@ def rib_with_trenches(
         layer_trench: layer to etch trenches.
         wg_marking_layer: layer to draw over the actual waveguide. \
                 This can be useful for booleans, routing, placement ...
+        sections: list of Sections(width, offset, layer, ports).
         kwargs: cross_section settings.
 
     .. code::
@@ -721,11 +951,12 @@ def rib_with_trenches(
         width_slab = width + 2 * width_trench + 2 * slab_offset
 
     trench_offset = width / 2 + width_trench / 2
-    sections = list(sections or ())
-    sections += [
+    section_list: list[Section] = list(sections or ())
+    assert width_slab is not None
+    section_list.append(
         Section(width=width_slab, layer=layer, name="slab", simplify=simplify_slab)
-    ]
-    sections += [
+    )
+    section_list += [
         Section(
             width=width_trench, offset=offset, layer=layer_trench, name=f"trench_{i}"
         )
@@ -735,22 +966,22 @@ def rib_with_trenches(
     return cross_section(
         layer=wg_marking_layer,
         width=width,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         **kwargs,
     )
 
 
+@xsection
 def l_with_trenches(
     width: float = 0.5,
     width_trench: float = 2.0,
     width_slab: float = 7.0,
-    layer: LayerSpec | None = "WG",
-    layer_slab: LayerSpec | None = "WG",
-    layer_trench: LayerSpec = "DEEP_ETCH",
+    layer: typings.LayerSpec = "WG",
+    layer_slab: typings.LayerSpec = "WG",
+    layer_trench: typings.LayerSpec = "DEEP_ETCH",
     mirror: bool = False,
-    wg_marking_layer: LayerSpec | None = None,
-    sections: tuple[Section, ...] | None = None,
-    **kwargs,
+    sections: Sections | None = None,
+    **kwargs: Any,
 ) -> CrossSection:
     """Return CrossSection of l waveguide defined by trenches.
 
@@ -758,11 +989,13 @@ def l_with_trenches(
         width: main Section width (um) or function parameterized from 0 to 1. \
                 the width at t==0 is the width at the beginning of the Path. \
                 the width at t==1 is the width at the end.
-        width_slab: in um.
         width_trench: in um.
+        width_slab: in um.
         layer: ridge layer. None adds only ridge.
+        layer_slab: slab layer.
         layer_trench: layer to etch trenches.
         mirror: this cross section is not symmetric and you can switch orientation.
+        sections: list of Sections(width, offset, layer, ports).
         kwargs: cross_section settings.
 
 
@@ -795,80 +1028,165 @@ def l_with_trenches(
         c = p.extrude(xs)
         c.plot()
     """
-
     mult = 1 if mirror else -1
     trench_offset = mult * (width / 2 + width_trench / 2)
-    sections = list(sections or ())
-    sections += [
+    section_list: list[Section] = list(sections or ())
+    section_list += [
         Section(
             width=width_slab,
             layer=layer_slab,
             offset=mult * (width_slab / 2 - width / 2),
         )
     ]
-    sections += [Section(width=width_trench, offset=trench_offset, layer=layer_trench)]
+    section_list += [
+        Section(width=width_trench, offset=trench_offset, layer=layer_trench)
+    ]
 
     return cross_section(
         width=width,
         layer=layer,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         **kwargs,
     )
 
 
-metal1 = partial(
-    cross_section,
-    layer="M1",
-    width=10.0,
-    port_names=port_names_electrical,
-    port_types=port_types_electrical,
-    radius=None,
-)
-metal2 = partial(
-    metal1,
-    layer="M2",
-)
-metal3 = partial(
-    metal1,
-    layer="M3",
-)
-heater_metal = partial(
-    metal1,
-    width=2.5,
-    layer="HEATER",
-)
-
-metal_routing = metal3
-npp = partial(metal1, layer="NPP", width=0.5)
-
-metal_slotted = partial(
-    cross_section,
-    width=10,
-    offset=0,
-    layer="M3",
-    sections=(
-        Section(width=10, layer="M3", offset=11),
-        Section(width=10, layer="M3", offset=-11),
-    ),
-)
+@xsection
+def metal1(
+    width: float = 10,
+    layer: typings.LayerSpec = "M1",
+    radius: float | None = None,
+    port_names: typings.IOPorts = port_names_electrical,
+    port_types: typings.IOPorts = port_types_electrical,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Metal Strip cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        port_names=port_names,
+        port_types=port_types,
+        **kwargs,
+    )
 
 
+@xsection
+def metal2(
+    width: float = 10,
+    layer: typings.LayerSpec = "M2",
+    radius: float | None = None,
+    port_names: typings.IOPorts = port_names_electrical,
+    port_types: typings.IOPorts = port_types_electrical,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Metal Strip cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        port_names=port_names,
+        port_types=port_types,
+        **kwargs,
+    )
+
+
+@xsection
+def metal3(
+    width: float = 10,
+    layer: typings.LayerSpec = "M3",
+    radius: float | None = None,
+    port_names: typings.IOPorts = port_names_electrical,
+    port_types: typings.IOPorts = port_types_electrical,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Metal Strip cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        port_names=port_names,
+        port_types=port_types,
+        **kwargs,
+    )
+
+
+@xsection
+def metal_routing(
+    width: float = 10,
+    layer: typings.LayerSpec = "M3",
+    radius: float | None = None,
+    port_names: typings.IOPorts = port_names_electrical,
+    port_types: typings.IOPorts = port_types_electrical,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Metal Strip cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        port_names=port_names,
+        port_types=port_types,
+        **kwargs,
+    )
+
+
+@xsection
+def heater_metal(
+    width: float = 2.5,
+    layer: typings.LayerSpec = "HEATER",
+    radius: float | None = None,
+    port_names: typings.IOPorts = port_names_electrical,
+    port_types: typings.IOPorts = port_types_electrical,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Metal Strip cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        port_names=port_names,
+        port_types=port_types,
+        **kwargs,
+    )
+
+
+@xsection
+def npp(
+    width: float = 0.5,
+    layer: typings.LayerSpec = "NPP",
+    radius: float | None = None,
+    port_names: typings.IOPorts = port_names_electrical,
+    port_types: typings.IOPorts = port_types_electrical,
+    **kwargs: Any,
+) -> CrossSection:
+    """Return Doped NPP cross_section."""
+    return cross_section(
+        width=width,
+        layer=layer,
+        radius=radius,
+        port_names=port_names,
+        port_types=port_types,
+        **kwargs,
+    )
+
+
+@xsection
 def pin(
     width: float = 0.5,
-    layer: LayerSpec = "WG",
-    layer_slab: LayerSpec = "SLAB90",
-    layers_via_stack1: LayerSpecs = ("PPP",),
-    layers_via_stack2: LayerSpecs = ("NPP",),
+    layer: typings.LayerSpec = "WG",
+    layer_slab: typings.LayerSpec = "SLAB90",
+    layers_via_stack1: typings.LayerSpecs = ("PPP",),
+    layers_via_stack2: typings.LayerSpecs = ("NPP",),
     bbox_offsets_via_stack1: tuple[float, ...] = (0, -0.2),
     bbox_offsets_via_stack2: tuple[float, ...] = (0, -0.2),
     via_stack_width: float = 9.0,
     via_stack_gap: float = 0.55,
     slab_gap: float = -0.2,
-    layer_via: LayerSpec | None = None,
+    layer_via: typings.LayerSpec | None = None,
     via_width: float = 1,
     via_offsets: tuple[float, ...] | None = None,
-    sections: tuple[Section, ...] | None = None,
-    **kwargs,
+    sections: Sections | None = None,
+    **kwargs: Any,
 ) -> CrossSection:
     """Rib PIN doped cross_section.
 
@@ -917,12 +1235,12 @@ def pin(
         c = p.extrude(xs)
         c.plot()
     """
-    sections = list(sections or [])
+    section_list: list[Section] = list(sections or [])
     slab_width = width + 2 * via_stack_gap + 2 * via_stack_width - 2 * slab_gap
     via_stack_offset = width / 2 + via_stack_gap + via_stack_width / 2
 
-    sections += [Section(width=slab_width, layer=layer_slab, name="slab")]
-    sections += [
+    section_list += [Section(width=slab_width, layer=layer_slab, name="slab")]
+    section_list += [
         Section(
             layer=layer,
             width=via_stack_width + 2 * cladding_offset,
@@ -930,7 +1248,7 @@ def pin(
         )
         for layer, cladding_offset in zip(layers_via_stack1, bbox_offsets_via_stack1)
     ]
-    sections += [
+    section_list += [
         Section(
             layer=layer,
             width=via_stack_width + 2 * cladding_offset,
@@ -939,7 +1257,7 @@ def pin(
         for layer, cladding_offset in zip(layers_via_stack2, bbox_offsets_via_stack2)
     ]
     if layer_via and via_width and via_offsets:
-        sections += [
+        section_list += [
             Section(
                 layer=layer_via,
                 width=via_width,
@@ -951,38 +1269,39 @@ def pin(
     return strip(
         width=width,
         layer=layer,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         **kwargs,
     )
 
 
+@xsection
 def pn(
     width: float = 0.5,
-    layer: LayerSpec = "WG",
-    layer_slab: LayerSpec = "SLAB90",
+    layer: typings.LayerSpec = "WG",
+    layer_slab: typings.LayerSpec = "SLAB90",
     gap_low_doping: float = 0.0,
-    gap_medium_doping: float | None = 0.5,
-    gap_high_doping: float | None = 1.0,
-    offset_low_doping: float | None = 0.0,
+    gap_medium_doping: float = 0.5,
+    gap_high_doping: float = 1.0,
+    offset_low_doping: float = 0.0,
     width_doping: float = 8.0,
     width_slab: float = 7.0,
-    layer_p: LayerSpec | None = "P",
-    layer_pp: LayerSpec | None = "PP",
-    layer_ppp: LayerSpec | None = "PPP",
-    layer_n: LayerSpec | None = "N",
-    layer_np: LayerSpec | None = "NP",
-    layer_npp: LayerSpec | None = "NPP",
-    layer_via: LayerSpec | None = None,
+    layer_p: typings.LayerSpec | None = "P",
+    layer_pp: typings.LayerSpec | None = "PP",
+    layer_ppp: typings.LayerSpec | None = "PPP",
+    layer_n: typings.LayerSpec | None = "N",
+    layer_np: typings.LayerSpec | None = "NP",
+    layer_npp: typings.LayerSpec | None = "NPP",
+    layer_via: typings.LayerSpec | None = None,
     width_via: float = 1.0,
-    layer_metal: LayerSpec | None = None,
+    layer_metal: typings.LayerSpec | None = None,
     width_metal: float = 1.0,
     port_names: tuple[str, str] = ("o1", "o2"),
-    sections: tuple[Section, ...] | None = None,
-    cladding_layers: LayerSpecs | None = None,
-    cladding_offsets: Floats | None = None,
-    cladding_simplify: Floats | None = None,
+    sections: Sections | None = None,
+    cladding_layers: typings.LayerSpecs | None = None,
+    cladding_offsets: typings.Floats | None = None,
+    cladding_simplify: typings.Floats | None = None,
     slab_inset: float | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> CrossSection:
     """Rib PN doped cross_section.
 
@@ -1046,12 +1365,14 @@ def pn(
         c = p.extrude(xs)
         c.plot()
     """
-    slab_insets = (slab_inset,) * 2 if slab_inset else None
+    slab_insets_valid = (slab_inset, slab_inset) if slab_inset else None
 
-    slab = Section(width=width_slab, offset=0, layer=layer_slab, insets=slab_insets)
+    slab = Section(
+        width=width_slab, offset=0, layer=layer_slab, insets=slab_insets_valid
+    )
 
-    sections = list(sections or [])
-    sections += [slab]
+    section_list: list[Section] = list(sections or [])
+    section_list += [slab]
     base_offset_low_doping = width_doping / 2 + gap_low_doping / 4
     width_low_doping = width_doping - gap_low_doping / 2
 
@@ -1061,54 +1382,52 @@ def pn(
             offset=+base_offset_low_doping - offset_low_doping / 2,
             layer=layer_n,
         )
-        sections.append(n)
+        section_list.append(n)
     if layer_p:
         p = Section(
             width=width_low_doping - offset_low_doping,
             offset=-base_offset_low_doping - offset_low_doping / 2,
             layer=layer_p,
         )
-        sections.append(p)
+        section_list.append(p)
 
-    if gap_medium_doping is not None:
-        width_medium_doping = width_doping - gap_medium_doping
-        offset_medium_doping = width_medium_doping / 2 + gap_medium_doping
+    width_medium_doping = width_doping - gap_medium_doping
+    offset_medium_doping = width_medium_doping / 2 + gap_medium_doping
 
-        if layer_np is not None:
-            np = Section(
-                width=width_medium_doping,
-                offset=+offset_medium_doping,
-                layer=layer_np,
-            )
-            sections.append(np)
-        if layer_pp is not None:
-            pp = Section(
-                width=width_medium_doping,
-                offset=-offset_medium_doping,
-                layer=layer_pp,
-            )
-            sections.append(pp)
+    if layer_np is not None:
+        np = Section(
+            width=width_medium_doping,
+            offset=+offset_medium_doping,
+            layer=layer_np,
+        )
+        section_list.append(np)
+    if layer_pp is not None:
+        pp = Section(
+            width=width_medium_doping,
+            offset=-offset_medium_doping,
+            layer=layer_pp,
+        )
+        section_list.append(pp)
 
-    if gap_high_doping is not None:
-        width_high_doping = width_doping - gap_high_doping
-        offset_high_doping = width_high_doping / 2 + gap_high_doping
-        if layer_npp is not None:
-            npp = Section(
-                width=width_high_doping, offset=+offset_high_doping, layer=layer_npp
-            )
-            sections.append(npp)
-        if layer_ppp is not None:
-            ppp = Section(
-                width=width_high_doping, offset=-offset_high_doping, layer=layer_ppp
-            )
-            sections.append(ppp)
+    width_high_doping = width_doping - gap_high_doping
+    offset_high_doping = width_high_doping / 2 + gap_high_doping
+    if layer_npp is not None:
+        npp = Section(
+            width=width_high_doping, offset=+offset_high_doping, layer=layer_npp
+        )
+        section_list.append(npp)
+    if layer_ppp is not None:
+        ppp = Section(
+            width=width_high_doping, offset=-offset_high_doping, layer=layer_ppp
+        )
+        section_list.append(ppp)
 
     if layer_via is not None:
         offset = width_high_doping + gap_high_doping - width_via / 2
         via_top = Section(width=width_via, offset=+offset, layer=layer_via)
         via_bot = Section(width=width_via, offset=-offset, layer=layer_via)
-        sections.append(via_top)
-        sections.append(via_bot)
+        section_list.append(via_top)
+        section_list.append(via_bot)
 
     if layer_metal is not None:
         offset = width_high_doping + gap_high_doping - width_metal / 2
@@ -1127,15 +1446,15 @@ def pn(
             port_types=port_types,
             port_names=("e1_bot", "e2_bot"),
         )
-        sections.append(metal_top)
-        sections.append(metal_bot)
+        section_list.append(metal_top)
+        section_list.append(metal_bot)
 
     return cross_section(
         width=width,
         offset=0,
         layer=layer,
         port_names=port_names,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         cladding_offsets=cladding_offsets,
         cladding_layers=cladding_layers,
         cladding_simplify=cladding_simplify,
@@ -1143,35 +1462,36 @@ def pn(
     )
 
 
+@xsection
 def pn_with_trenches(
     width: float = 0.5,
-    layer: LayerSpec | None = None,
-    layer_trench: LayerSpec = "DEEP_ETCH",
+    layer: typings.LayerSpec = "WG",
+    layer_trench: typings.LayerSpec = "DEEP_ETCH",
     gap_low_doping: float = 0.0,
     gap_medium_doping: float | None = 0.5,
     gap_high_doping: float | None = 1.0,
-    offset_low_doping: float | None = 0.0,
+    offset_low_doping: float = 0.0,
     width_doping: float = 8.0,
     slab_offset: float | None = 0.3,
     width_slab: float | None = None,
     width_trench: float = 2.0,
-    layer_p: LayerSpec | None = "P",
-    layer_pp: LayerSpec | None = "PP",
-    layer_ppp: LayerSpec | None = "PPP",
-    layer_n: LayerSpec | None = "N",
-    layer_np: LayerSpec | None = "NP",
-    layer_npp: LayerSpec | None = "NPP",
-    layer_via: LayerSpec | None = None,
+    layer_p: typings.LayerSpec | None = "P",
+    layer_pp: typings.LayerSpec | None = "PP",
+    layer_ppp: typings.LayerSpec | None = "PPP",
+    layer_n: typings.LayerSpec | None = "N",
+    layer_np: typings.LayerSpec | None = "NP",
+    layer_npp: typings.LayerSpec | None = "NPP",
+    layer_via: typings.LayerSpec | None = None,
     width_via: float = 1.0,
-    layer_metal: LayerSpec | None = None,
+    layer_metal: typings.LayerSpec | None = None,
     width_metal: float = 1.0,
-    port_names: tuple[str, str] = ("o1", "o2"),
-    cladding_layers: Layers | None = cladding_layers_optical,
-    cladding_offsets: Floats | None = cladding_offsets_optical,
-    cladding_simplify: Floats | None = cladding_simplify_optical,
-    wg_marking_layer: LayerSpec | None = None,
+    port_names: typings.IOPorts = ("o1", "o2"),
+    cladding_layers: typings.Layers | None = cladding_layers_optical,
+    cladding_offsets: typings.Floats | None = cladding_offsets_optical,
+    cladding_simplify: typings.Floats | None = cladding_simplify_optical,
+    wg_marking_layer: typings.LayerSpec | None = None,
     sections: Sections | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> CrossSection:
     """Rib PN doped cross_section.
 
@@ -1203,6 +1523,8 @@ def pn_with_trenches(
         cladding_simplify: Optional Tolerance value for the simplification algorithm.\
                 All points that can be removed without changing the resulting. \
                 polygon by more than the value listed here will be removed.
+        wg_marking_layer: layer to draw over the actual waveguide.
+        sections: optional list of sections.
         kwargs: cross_section settings.
 
     .. code::
@@ -1247,16 +1569,16 @@ def pn_with_trenches(
         width_slab = width + 2 * width_trench + 2 * slab_offset
 
     trench_offset = width / 2 + width_trench / 2
-    sections = []
-    sections += list(sections or [])
-    sections += [Section(width=width_slab, layer=layer)]
-    sections += [
+    section_list: list[Section] = list(sections or [])
+    assert width_slab is not None
+    section_list += [Section(width=width_slab, layer=layer)]
+    section_list += [
         Section(width=width_trench, offset=offset, layer=layer_trench)
         for offset in [+trench_offset, -trench_offset]
     ]
 
     if wg_marking_layer is not None:
-        sections += [Section(width=width, offset=0, layer=wg_marking_layer)]
+        section_list += [Section(width=width, offset=0, layer=wg_marking_layer)]
 
     base_offset_low_doping = width_doping / 2 + gap_low_doping / 4
     width_low_doping = width_doping - gap_low_doping / 2
@@ -1267,14 +1589,14 @@ def pn_with_trenches(
             offset=+base_offset_low_doping - offset_low_doping / 2,
             layer=layer_n,
         )
-        sections.append(n)
+        section_list.append(n)
     if layer_p:
         p = Section(
             width=width_low_doping - offset_low_doping,
             offset=-base_offset_low_doping - offset_low_doping / 2,
             layer=layer_p,
         )
-        sections.append(p)
+        section_list.append(p)
 
     if gap_medium_doping is not None:
         width_medium_doping = width_doping - gap_medium_doping
@@ -1286,15 +1608,16 @@ def pn_with_trenches(
                 offset=+offset_medium_doping,
                 layer=layer_np,
             )
-            sections.append(np)
+            section_list.append(np)
         if layer_pp:
             pp = Section(
                 width=width_medium_doping,
                 offset=-offset_medium_doping,
                 layer=layer_pp,
             )
-            sections.append(pp)
+            section_list.append(pp)
 
+    width_high_doping: float | None = None
     if gap_high_doping is not None:
         width_high_doping = width_doping - gap_high_doping
         offset_high_doping = width_high_doping / 2 + gap_high_doping
@@ -1302,21 +1625,29 @@ def pn_with_trenches(
             npp = Section(
                 width=width_high_doping, offset=+offset_high_doping, layer=layer_npp
             )
-            sections.append(npp)
+            section_list.append(npp)
         if layer_ppp:
             ppp = Section(
                 width=width_high_doping, offset=-offset_high_doping, layer=layer_ppp
             )
-            sections.append(ppp)
+            section_list.append(ppp)
 
-    if layer_via is not None:
+    if (
+        layer_via is not None
+        and gap_high_doping is not None
+        and width_high_doping is not None
+    ):
         offset = width_high_doping + gap_high_doping - width_via / 2
         via_top = Section(width=width_via, offset=+offset, layer=layer_via)
         via_bot = Section(width=width_via, offset=-offset, layer=layer_via)
-        sections.append(via_top)
-        sections.append(via_bot)
+        section_list.append(via_top)
+        section_list.append(via_bot)
 
-    if layer_metal is not None:
+    if (
+        layer_metal is not None
+        and width_high_doping is not None
+        and gap_high_doping is not None
+    ):
         offset = width_high_doping + gap_high_doping - width_metal / 2
         port_types = ("electrical", "electrical")
         metal_top = Section(
@@ -1333,15 +1664,15 @@ def pn_with_trenches(
             port_types=port_types,
             port_names=("e1_bot", "e2_bot"),
         )
-        sections.append(metal_top)
-        sections.append(metal_bot)
+        section_list.append(metal_top)
+        section_list.append(metal_bot)
 
     return cross_section(
         width=width,
         offset=0,
         layer=layer,
         port_names=port_names,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         cladding_offsets=cladding_offsets,
         cladding_simplify=cladding_simplify,
         cladding_layers=cladding_layers,
@@ -1349,10 +1680,11 @@ def pn_with_trenches(
     )
 
 
+@xsection
 def pn_with_trenches_asymmetric(
     width: float = 0.5,
-    layer: LayerSpec | None = None,
-    layer_trench: LayerSpec = "DEEP_ETCH",
+    layer: typings.LayerSpec = "WG",
+    layer_trench: typings.LayerSpec = "DEEP_ETCH",
     gap_low_doping: float | tuple[float, float] = (0.0, 0.0),
     gap_medium_doping: float | tuple[float, float] | None = (0.5, 0.2),
     gap_high_doping: float | tuple[float, float] | None = (1.0, 0.8),
@@ -1360,22 +1692,22 @@ def pn_with_trenches_asymmetric(
     slab_offset: float | None = 0.3,
     width_slab: float | None = None,
     width_trench: float = 2.0,
-    layer_p: LayerSpec | None = "P",
-    layer_pp: LayerSpec | None = "PP",
-    layer_ppp: LayerSpec | None = "PPP",
-    layer_n: LayerSpec | None = "N",
-    layer_np: LayerSpec | None = "NP",
-    layer_npp: LayerSpec | None = "NPP",
-    layer_via: LayerSpec | None = None,
+    layer_p: typings.LayerSpec | None = "P",
+    layer_pp: typings.LayerSpec | None = "PP",
+    layer_ppp: typings.LayerSpec | None = "PPP",
+    layer_n: typings.LayerSpec | None = "N",
+    layer_np: typings.LayerSpec | None = "NP",
+    layer_npp: typings.LayerSpec | None = "NPP",
+    layer_via: typings.LayerSpec | None = None,
     width_via: float = 1.0,
-    layer_metal: LayerSpec | None = None,
+    layer_metal: typings.LayerSpec | None = None,
     width_metal: float = 1.0,
     port_names: tuple[str, str] = ("o1", "o2"),
-    cladding_layers: Layers | None = cladding_layers_optical,
-    cladding_offsets: Floats | None = cladding_offsets_optical,
-    wg_marking_layer: LayerSpec | None = None,
+    cladding_layers: typings.Layers | None = cladding_layers_optical,
+    cladding_offsets: typings.Floats | None = cladding_offsets_optical,
+    wg_marking_layer: typings.LayerSpec | None = None,
     sections: Sections | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> CrossSection:
     """Rib PN doped cross_section with asymmetric dimensions left and right.
 
@@ -1409,6 +1741,8 @@ def pn_with_trenches_asymmetric(
         port_names: input and output port names.
         cladding_layers: optional list of cladding layers.
         cladding_offsets: optional list of cladding offsets.
+        wg_marking_layer: layer to draw over the actual waveguide.
+        sections: optional list of sections.
         kwargs: cross_section settings.
 
     .. code::
@@ -1454,95 +1788,114 @@ def pn_with_trenches_asymmetric(
 
     # Trenches
     trench_offset = width / 2 + width_trench / 2
-    sections = []
-    sections += list(sections or [])
-    sections += [Section(width=width_slab, layer=layer)]
-    sections += [
+    section_list: list[Section] = list(sections or [])
+    assert width_slab is not None
+    section_list += [Section(width=width_slab, layer=layer)]
+    section_list += [
         Section(width=width_trench, offset=offset, layer=layer_trench)
         for offset in [+trench_offset, -trench_offset]
     ]
 
     if wg_marking_layer is not None:
-        sections += [Section(width=width, offset=0, layer=wg_marking_layer)]
+        section_list += [Section(width=width, offset=0, layer=wg_marking_layer)]
 
     # Low doping
+
     if not isinstance(gap_low_doping, list | tuple):
-        gap_low_doping = [gap_low_doping] * 2
+        gap_low_doping_list = [gap_low_doping] * 2
+    else:
+        gap_low_doping_list = list(gap_low_doping)
 
     if layer_n:
-        width_low_doping_n = width_doping - gap_low_doping[1]
+        width_low_doping_n = width_doping - gap_low_doping_list[1]
         n = Section(
             width=width_low_doping_n,
-            offset=width_low_doping_n / 2 + gap_low_doping[1],
+            offset=width_low_doping_n / 2 + gap_low_doping_list[1],
             layer=layer_n,
         )
-        sections.append(n)
+        section_list.append(n)
     if layer_p:
-        width_low_doping_p = width_doping - gap_low_doping[0]
+        width_low_doping_p = width_doping - gap_low_doping_list[0]
         p = Section(
             width=width_low_doping_p,
-            offset=-(width_low_doping_p / 2 + gap_low_doping[0]),
+            offset=-(width_low_doping_p / 2 + gap_low_doping_list[0]),
             layer=layer_p,
         )
-        sections.append(p)
+        section_list.append(p)
 
     if gap_medium_doping is not None:
         if not isinstance(gap_medium_doping, list | tuple):
-            gap_medium_doping = [gap_medium_doping] * 2
+            gap_medium_doping_list = [gap_medium_doping] * 2
+        else:
+            gap_medium_doping_list = list(gap_medium_doping)
 
         if layer_np:
-            width_np = width_doping - gap_medium_doping[1]
+            width_np = width_doping - gap_medium_doping_list[1]
             np = Section(
                 width=width_np,
-                offset=width_np / 2 + gap_medium_doping[1],
+                offset=width_np / 2 + gap_medium_doping_list[1],
                 layer=layer_np,
             )
-            sections.append(np)
+            section_list.append(np)
         if layer_pp:
-            width_pp = width_doping - gap_medium_doping[0]
+            width_pp = width_doping - gap_medium_doping_list[0]
             pp = Section(
                 width=width_pp,
-                offset=-(width_pp / 2 + gap_medium_doping[0]),
+                offset=-(width_pp / 2 + gap_medium_doping_list[0]),
                 layer=layer_pp,
             )
-            sections.append(pp)
-
+            section_list.append(pp)
+    gap_high_doping_list: list[float] | None = None
+    width_npp: float | None = None
+    width_ppp: float | None = None
     if gap_high_doping is not None:
         if not isinstance(gap_high_doping, list | tuple):
-            gap_high_doping = [gap_high_doping] * 2
+            gap_high_doping_list = [float(gap_high_doping)] * 2
+        else:
+            gap_high_doping_list = list(gap_high_doping)
 
         if layer_npp:
-            width_npp = width_doping - gap_high_doping[1]
+            width_npp = width_doping - gap_high_doping_list[1]
             npp = Section(
                 width=width_npp,
-                offset=width_npp / 2 + gap_high_doping[1],
+                offset=width_npp / 2 + gap_high_doping_list[1],
                 layer=layer_npp,
             )
-            sections.append(npp)
+            section_list.append(npp)
         if layer_ppp:
-            width_ppp = width_doping - gap_high_doping[0]
+            width_ppp = width_doping - gap_high_doping_list[0]
             ppp = Section(
                 width=width_ppp,
-                offset=-(width_ppp / 2 + gap_high_doping[0]),
+                offset=-(width_ppp / 2 + gap_high_doping_list[0]),
                 layer=layer_ppp,
             )
-            sections.append(ppp)
+            section_list.append(ppp)
 
-    if layer_via is not None:
-        offset_top = width_npp + gap_high_doping[1] - width_via / 2
-        offset_bot = width_ppp + gap_high_doping[0] - width_via / 2
+    if (
+        layer_via is not None
+        and gap_high_doping_list is not None
+        and width_npp is not None
+        and width_ppp is not None
+    ):
+        offset_top = width_npp + gap_high_doping_list[1] - width_via / 2
+        offset_bot = width_ppp + gap_high_doping_list[0] - width_via / 2
         via_top = Section(width=width_via, offset=+offset_top, layer=layer_via)
         via_bot = Section(width=width_via, offset=-offset_bot, layer=layer_via)
-        sections.append(via_top)
-        sections.append(via_bot)
+        section_list.append(via_top)
+        section_list.append(via_bot)
 
-    if layer_metal is not None:
-        offset_top = width_npp + gap_high_doping[1] - width_metal / 2
-        offset_bot = width_ppp + gap_high_doping[0] - width_metal / 2
+    if (
+        layer_metal is not None
+        and gap_high_doping_list is not None
+        and width_npp is not None
+        and width_ppp is not None
+    ):
+        offset_top = width_npp + gap_high_doping_list[1] - width_metal / 2
+        offset_bot = width_ppp + gap_high_doping_list[0] - width_metal / 2
         port_types = ("electrical", "electrical")
         metal_top = Section(
             width=width_via,
-            offset=+offset_top,
+            offset=offset_top,
             layer=layer_metal,
             port_types=port_types,
             port_names=("e1_top", "e2_top"),
@@ -1554,25 +1907,26 @@ def pn_with_trenches_asymmetric(
             port_types=port_types,
             port_names=("e1_bot", "e2_bot"),
         )
-        sections.append(metal_top)
-        sections.append(metal_bot)
+        section_list.append(metal_top)
+        section_list.append(metal_bot)
 
     return cross_section(
         width=width,
         offset=0,
         layer=layer,
         port_names=port_names,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         cladding_offsets=cladding_offsets,
         cladding_layers=cladding_layers,
         **kwargs,
     )
 
 
+@xsection
 def l_wg_doped_with_trenches(
     width: float = 0.5,
-    layer: LayerSpec | None = None,
-    layer_trench: LayerSpec = "DEEP_ETCH",
+    layer: typings.LayerSpec = "WG",
+    layer_trench: typings.LayerSpec = "DEEP_ETCH",
     gap_low_doping: float = 0.0,
     gap_medium_doping: float | None = 0.5,
     gap_high_doping: float | None = 1.0,
@@ -1580,19 +1934,19 @@ def l_wg_doped_with_trenches(
     slab_offset: float | None = 0.3,
     width_slab: float | None = None,
     width_trench: float = 2.0,
-    layer_low: LayerSpec = "P",
-    layer_mid: LayerSpec = "PP",
-    layer_high: LayerSpec = "PPP",
-    layer_via: LayerSpec | None = None,
+    layer_low: typings.LayerSpec = "P",
+    layer_mid: typings.LayerSpec = "PP",
+    layer_high: typings.LayerSpec = "PPP",
+    layer_via: typings.LayerSpec | None = None,
     width_via: float = 1.0,
-    layer_metal: LayerSpec | None = None,
+    layer_metal: typings.LayerSpec | None = None,
     width_metal: float = 1.0,
     port_names: tuple[str, str] = ("o1", "o2"),
-    cladding_layers: Layers | None = cladding_layers_optical,
-    cladding_offsets: Floats | None = cladding_offsets_optical,
-    wg_marking_layer: LayerSpec | None = None,
+    cladding_layers: typings.Layers | None = cladding_layers_optical,
+    cladding_offsets: typings.Floats | None = cladding_offsets_optical,
+    wg_marking_layer: typings.LayerSpec | None = None,
     sections: Sections | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> CrossSection:
     """L waveguide PN doped cross_section.
 
@@ -1618,6 +1972,7 @@ def l_wg_doped_with_trenches(
         cladding_layers: optional list of cladding layers.
         cladding_offsets: optional list of cladding offsets.
         wg_marking_layer: layer to mark where the actual guiding section is.
+        sections: optional list of sections.
         kwargs: cross_section settings.
 
     .. code::
@@ -1665,15 +2020,17 @@ def l_wg_doped_with_trenches(
         width_slab = width + 2 * width_trench + 2 * slab_offset
 
     trench_offset = -1 * (width / 2 + width_trench / 2)
-    sections = []
-    sections += list(sections or [])
-    sections += [
+    section_list: list[Section] = list(sections or [])
+    assert width_slab is not None
+    section_list.append(
         Section(width=width_slab, layer=layer, offset=-1 * (width_slab / 2 - width / 2))
+    )
+    section_list += [
+        Section(width=width_trench, offset=trench_offset, layer=layer_trench)
     ]
-    sections += [Section(width=width_trench, offset=trench_offset, layer=layer_trench)]
 
     if wg_marking_layer is not None:
-        sections += [Section(width=width, offset=0, layer=wg_marking_layer)]
+        section_list += [Section(width=width, offset=0, layer=wg_marking_layer)]
 
     offset_low_doping = width / 2 - gap_low_doping - width_doping / 2
 
@@ -1683,7 +2040,7 @@ def l_wg_doped_with_trenches(
         layer=layer_low,
     )
 
-    sections.append(low_doping)
+    section_list.append(low_doping)
 
     if gap_medium_doping is not None:
         width_medium_doping = width_doping - gap_medium_doping
@@ -1694,7 +2051,10 @@ def l_wg_doped_with_trenches(
             offset=offset_medium_doping,
             layer=layer_mid,
         )
-        sections.append(mid_doping)
+        section_list.append(mid_doping)
+
+    offset_high_doping: float | None = None
+    width_high_doping: float | None = None
 
     if gap_high_doping is not None:
         width_high_doping = width_doping - gap_high_doping
@@ -1704,14 +2064,22 @@ def l_wg_doped_with_trenches(
             width=width_high_doping, offset=+offset_high_doping, layer=layer_high
         )
 
-        sections.append(high_doping)
+        section_list.append(high_doping)
 
-    if layer_via is not None:
+    if (
+        layer_via is not None
+        and offset_high_doping is not None
+        and width_high_doping is not None
+    ):
         offset = offset_high_doping - width_high_doping / 2 + width_via / 2
         via = Section(width=width_via, offset=+offset, layer=layer_via)
-        sections.append(via)
+        section_list.append(via)
 
-    if layer_metal is not None:
+    if (
+        layer_metal is not None
+        and offset_high_doping is not None
+        and width_high_doping is not None
+    ):
         offset = offset_high_doping - width_high_doping / 2 + width_metal / 2
         port_types = ("electrical", "electrical")
         metal = Section(
@@ -1721,30 +2089,31 @@ def l_wg_doped_with_trenches(
             port_types=port_types,
             port_names=("e1_top", "e2_top"),
         )
-        sections.append(metal)
+        section_list.append(metal)
 
     return cross_section(
         width=width,
         offset=0,
         layer=layer,
         port_names=port_names,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         cladding_offsets=cladding_offsets,
         cladding_layers=cladding_layers,
         **kwargs,
     )
 
 
+@xsection
 def strip_heater_metal_undercut(
     width: float = 0.5,
-    layer: LayerSpec = "WG",
+    layer: typings.LayerSpec = "WG",
     heater_width: float = 2.5,
     trench_width: float = 6.5,
     trench_gap: float = 2.0,
-    layer_heater: LayerSpec = "HEATER",
-    layer_trench: LayerSpec = "DEEPTRENCH",
+    layer_heater: typings.LayerSpec = "HEATER",
+    layer_trench: typings.LayerSpec = "DEEPTRENCH",
     sections: Sections | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> CrossSection:
     """Returns strip cross_section with top metal and undercut trenches on both.
 
@@ -1792,8 +2161,8 @@ def strip_heater_metal_undercut(
         c.plot()
     """
     trench_offset = trench_gap + trench_width / 2 + width / 2
-    sections = list(sections or [])
-    sections += [
+    section_list: list[Section] = list(sections or [])
+    section_list += [
         Section(
             layer=layer_heater,
             width=heater_width,
@@ -1807,18 +2176,20 @@ def strip_heater_metal_undercut(
     return strip(
         width=width,
         layer=layer,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         **kwargs,
     )
 
 
+@xsection
 def strip_heater_metal(
     width: float = 0.5,
-    layer: LayerSpec = "WG",
+    layer: typings.LayerSpec = "WG",
     heater_width: float = 2.5,
-    layer_heater: LayerSpec = "HEATER",
+    layer_heater: typings.LayerSpec = "HEATER",
     sections: Sections | None = None,
-    **kwargs,
+    insets: tuple[float, float] | None = None,
+    **kwargs: Any,
 ) -> CrossSection:
     """Returns strip cross_section with top heater metal.
 
@@ -1830,6 +2201,7 @@ def strip_heater_metal(
         heater_width: of metal heater.
         layer_heater: for the metal.
         sections: cross_section sections.
+        insets: for the heater.
         kwargs: cross_section settings.
 
     .. plot::
@@ -1842,34 +2214,35 @@ def strip_heater_metal(
         c = p.extrude(xs)
         c.plot()
     """
-
-    sections = list(sections or [])
-    sections += [
+    section_list: list[Section] = list(sections or [])
+    section_list += [
         Section(
             layer=layer_heater,
             width=heater_width,
             port_names=port_names_electrical,
             port_types=port_types_electrical,
+            insets=insets,
         )
     ]
 
     return strip(
         width=width,
         layer=layer,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         **kwargs,
     )
 
 
+@xsection
 def strip_heater_doped(
     width: float = 0.5,
-    layer: LayerSpec = "WG",
+    layer: typings.LayerSpec = "WG",
     heater_width: float = 2.0,
     heater_gap: float = 0.8,
-    layers_heater: LayerSpecs = ("WG", "NPP"),
+    layers_heater: typings.LayerSpecs = ("WG", "NPP"),
     bbox_offsets_heater: tuple[float, ...] = (0, 0.1),
     sections: Sections | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> CrossSection:
     """Returns strip cross_section with N++ doped heaters on both sides.
 
@@ -1905,8 +2278,8 @@ def strip_heater_doped(
     """
     heater_offset = width / 2 + heater_gap + heater_width / 2
 
-    sections = list(sections or [])
-    sections += [
+    section_list: list[Section] = list(sections or [])
+    section_list += [
         Section(
             layer=layer,
             width=heater_width + 2 * cladding_offset,
@@ -1916,7 +2289,7 @@ def strip_heater_doped(
         for layer, cladding_offset in zip(layers_heater, bbox_offsets_heater)
     ]
 
-    sections += [
+    section_list += [
         Section(
             layer=layer,
             width=heater_width + 2 * cladding_offset,
@@ -1929,30 +2302,24 @@ def strip_heater_doped(
     return strip(
         width=width,
         layer=layer,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         **kwargs,
     )
 
 
-strip_heater_doped_via_stack = partial(
-    strip_heater_doped,
-    layers_heater=("WG", "NPP", "VIAC"),
-    bbox_offsets_heater=(0, 0.1, -0.2),
-)
-
-
+@xsection
 def rib_heater_doped(
     width: float = 0.5,
-    layer: LayerSpec = "WG",
+    layer: typings.LayerSpec = "WG",
     heater_width: float = 2.0,
     heater_gap: float = 0.8,
-    layer_heater: LayerSpec = "NPP",
-    layer_slab: LayerSpec = "SLAB90",
+    layer_heater: typings.LayerSpec = "NPP",
+    layer_slab: typings.LayerSpec = "SLAB90",
     slab_gap: float = 0.2,
     with_top_heater: bool = True,
     with_bot_heater: bool = True,
     sections: Sections | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> CrossSection:
     """Returns rib cross_section with N++ doped heaters on both sides.
 
@@ -1986,21 +2353,23 @@ def rib_heater_doped(
 
     if with_bot_heater and with_top_heater:
         slab_width = width + 2 * heater_gap + 2 * heater_width + 2 * slab_gap
-        slab_offset = 0
+        slab_offset = 0.0
     elif with_top_heater:
         slab_width = width + heater_gap + heater_width + slab_gap
         slab_offset = -slab_width / 2
     elif with_bot_heater:
         slab_width = width + heater_gap + heater_width + slab_gap
         slab_offset = +slab_width / 2
+    else:
+        raise ValueError("At least one heater must be True")
 
-    sections = list(sections or [])
-    sections += [
+    section_list: list[Section] = list(sections or [])
+    section_list += [
         Section(width=slab_width, layer=layer_slab, offset=slab_offset, name="slab")
     ]
 
     if with_bot_heater:
-        sections += [
+        section_list += [
             Section(
                 layer=layer_heater,
                 width=heater_width,
@@ -2009,7 +2378,7 @@ def rib_heater_doped(
             )
         ]
     if with_top_heater:
-        sections += [
+        section_list += [
             Section(
                 layer=layer_heater,
                 width=heater_width,
@@ -2020,28 +2389,29 @@ def rib_heater_doped(
     return strip(
         width=width,
         layer=layer,
-        sections=tuple(sections),
+        sections=tuple(section_list),
         **kwargs,
     )
 
 
+@xsection
 def rib_heater_doped_via_stack(
     width: float = 0.5,
-    layer: LayerSpec = "WG",
+    layer: typings.LayerSpec = "WG",
     heater_width: float = 1.0,
     heater_gap: float = 0.8,
-    layer_slab: LayerSpec = "SLAB90",
-    layer_heater: LayerSpec = "NPP",
+    layer_slab: typings.LayerSpec = "SLAB90",
+    layer_heater: typings.LayerSpec = "NPP",
     via_stack_width: float = 2.0,
     via_stack_gap: float = 0.8,
-    layers_via_stack: LayerSpecs = ("NPP", "VIAC"),
+    layers_via_stack: typings.LayerSpecs = ("NPP", "VIAC"),
     bbox_offsets_via_stack: tuple[float, ...] = (0, -0.2),
     slab_gap: float = 0.2,
     slab_offset: float = 0,
     with_top_heater: bool = True,
     with_bot_heater: bool = True,
     sections: Sections | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> CrossSection:
     """Returns rib cross_section with N++ doped heaters on both sides.
 
@@ -2099,15 +2469,17 @@ def rib_heater_doped_via_stack(
     elif with_bot_heater:
         slab_width = width + heater_gap + heater_width + slab_gap
         slab_offset += slab_width / 2
+    else:
+        raise ValueError("At least one heater must be True")
 
     heater_offset = width / 2 + heater_gap + heater_width / 2
     via_stack_offset = width / 2 + via_stack_gap + via_stack_width / 2
-    sections = list(sections or [])
-    sections += [
+    section_list: list[Section] = list(sections or [])
+    section_list += [
         Section(width=slab_width, layer=layer_slab, offset=slab_offset, name="slab"),
     ]
     if with_bot_heater:
-        sections += [
+        section_list += [
             Section(
                 layer=layer_heater,
                 width=heater_width,
@@ -2116,7 +2488,7 @@ def rib_heater_doped_via_stack(
         ]
 
     if with_top_heater:
-        sections += [
+        section_list += [
             Section(
                 layer=layer_heater,
                 width=heater_width,
@@ -2125,7 +2497,7 @@ def rib_heater_doped_via_stack(
         ]
 
     if with_bot_heater:
-        sections += [
+        section_list += [
             Section(
                 layer=layer,
                 width=heater_width + 2 * cladding_offset,
@@ -2135,7 +2507,7 @@ def rib_heater_doped_via_stack(
         ]
 
     if with_top_heater:
-        sections += [
+        section_list += [
             Section(
                 layer=layer,
                 width=heater_width + 2 * cladding_offset,
@@ -2145,36 +2517,37 @@ def rib_heater_doped_via_stack(
         ]
 
     return strip(
-        sections=tuple(sections),
+        sections=tuple(section_list),
         width=width,
         layer=layer,
         **kwargs,
     )
 
 
+@xsection
 def pn_ge_detector_si_contacts(
     width_si: float = 6.0,
-    layer_si: LayerSpec = "WG",
+    layer_si: typings.LayerSpec = "WG",
     width_ge: float = 3.0,
-    layer_ge: LayerSpec = "GE",
+    layer_ge: typings.LayerSpec = "GE",
     gap_low_doping: float = 0.6,
-    gap_medium_doping: float | None = 0.9,
-    gap_high_doping: float | None = 1.1,
+    gap_medium_doping: float = 0.9,
+    gap_high_doping: float = 1.1,
     width_doping: float = 8.0,
-    layer_p: LayerSpec = "P",
-    layer_pp: LayerSpec = "PP",
-    layer_ppp: LayerSpec = "PPP",
-    layer_n: LayerSpec = "N",
-    layer_np: LayerSpec = "NP",
-    layer_npp: LayerSpec = "NPP",
-    layer_via: LayerSpec | None = None,
+    layer_p: typings.LayerSpec = "P",
+    layer_pp: typings.LayerSpec = "PP",
+    layer_ppp: typings.LayerSpec = "PPP",
+    layer_n: typings.LayerSpec = "N",
+    layer_np: typings.LayerSpec = "NP",
+    layer_npp: typings.LayerSpec = "NPP",
+    layer_via: typings.LayerSpec | None = None,
     width_via: float = 1.0,
-    layer_metal: LayerSpec | None = None,
+    layer_metal: typings.LayerSpec | None = None,
     port_names: tuple[str, str] = ("o1", "o2"),
-    cladding_layers: Layers | None = cladding_layers_optical,
-    cladding_offsets: Floats | None = cladding_offsets_optical,
-    cladding_simplify: Floats | None = None,
-    **kwargs,
+    cladding_layers: typings.Layers | None = cladding_layers_optical,
+    cladding_offsets: typings.Floats | None = cladding_offsets_optical,
+    cladding_simplify: typings.Floats | None = None,
+    **kwargs: Any,
 ) -> CrossSection:
     """Linear Ge detector cross section based on a lateral p(i)n junction.
 
@@ -2257,48 +2630,42 @@ def pn_ge_detector_si_contacts(
     n = Section(width=width_low_doping, offset=+offset_low_doping, layer=layer_n)
     p = Section(width=width_low_doping, offset=-offset_low_doping, layer=layer_p)
 
-    sections = [s, n, p]
+    section_list = [s, n, p]
 
     cladding_layers = cladding_layers or ()
     cladding_offsets = cladding_offsets or ()
-    cladding_simplify = cladding_simplify or (None,) * len(cladding_layers)
-    sections += [
+    cladding_simplify_not_none = cladding_simplify or (None,) * len(cladding_layers)
+    section_list += [
         Section(width=width_si + 2 * offset, layer=layer, simplify=simplify)
         for layer, offset, simplify in zip(
-            cladding_layers, cladding_offsets, cladding_simplify
+            cladding_layers, cladding_offsets, cladding_simplify_not_none
         )
     ]
 
-    if gap_medium_doping is not None:
-        width_medium_doping = width_doping - gap_medium_doping
-        offset_medium_doping = width_medium_doping / 2 + gap_medium_doping
+    width_medium_doping = width_doping - gap_medium_doping
+    offset_medium_doping = width_medium_doping / 2 + gap_medium_doping
 
-        np = Section(
-            width=width_medium_doping,
-            offset=+offset_medium_doping,
-            layer=layer_np,
-        )
-        pp = Section(
-            width=width_medium_doping,
-            offset=-offset_medium_doping,
-            layer=layer_pp,
-        )
-        sections.extend((np, pp))
-    if gap_high_doping is not None:
-        width_high_doping = width_doping - gap_high_doping
-        offset_high_doping = width_high_doping / 2 + gap_high_doping
-        npp = Section(
-            width=width_high_doping, offset=+offset_high_doping, layer=layer_npp
-        )
-        ppp = Section(
-            width=width_high_doping, offset=-offset_high_doping, layer=layer_ppp
-        )
-        sections.extend((npp, ppp))
+    np = Section(
+        width=width_medium_doping,
+        offset=+offset_medium_doping,
+        layer=layer_np,
+    )
+    pp = Section(
+        width=width_medium_doping,
+        offset=-offset_medium_doping,
+        layer=layer_pp,
+    )
+    section_list.extend((np, pp))
+    width_high_doping = width_doping - gap_high_doping
+    offset_high_doping = width_high_doping / 2 + gap_high_doping
+    npp = Section(width=width_high_doping, offset=+offset_high_doping, layer=layer_npp)
+    ppp = Section(width=width_high_doping, offset=-offset_high_doping, layer=layer_ppp)
+    section_list.extend((npp, ppp))
     if layer_via is not None:
         offset = width_high_doping / 2 + gap_high_doping
         via_top = Section(width=width_via, offset=+offset, layer=layer_via)
         via_bot = Section(width=width_via, offset=-offset, layer=layer_via)
-        sections.extend((via_top, via_bot))
+        section_list.extend((via_top, via_bot))
     if layer_metal is not None:
         offset = width_high_doping / 2 + gap_high_doping
         port_types = ("electrical", "electrical")
@@ -2316,34 +2683,31 @@ def pn_ge_detector_si_contacts(
             port_types=port_types,
             port_names=("e1_bot", "e2_bot"),
         )
-        sections.extend((metal_top, metal_bot))
+        section_list.extend((metal_top, metal_bot))
 
     # Add the Ge
     s = Section(width=width_ge, offset=0, layer=layer_ge)
-    sections.append(s)
+    section_list.append(s)
 
     return CrossSection(
-        sections=tuple(sections),
+        sections=tuple(section_list),
         **kwargs,
     )
 
 
 def get_cross_sections(
-    modules: Iterable[ModuleType] | ModuleType, verbose: bool = False
-) -> dict[str, CrossSection | Callable[..., CrossSection]]:
+    modules: Sequence[ModuleType] | ModuleType, verbose: bool = False
+) -> dict[str, CrossSectionFactory]:
     """Returns cross_sections from a module or list of modules.
 
     Args:
         modules: module or iterable of modules.
         verbose: prints in case any errors occur.
     """
-    modules = modules if isinstance(modules, Iterable) else [modules]
-
-    xs = {}
-    for module in modules:
+    modules_ = modules if isinstance(modules, Sequence) else [modules]
+    xs: dict[str, CrossSectionFactory] = {}
+    for module in modules_:
         for t in getmembers(module):
-            if isinstance(t[1], CrossSection):
-                xs[t[0]] = t[1]
             if callable(t[1]) and not t[0].startswith("_"):
                 try:
                     r = signature(
@@ -2353,47 +2717,13 @@ def get_cross_sections(
                         isinstance(r, str) and r.endswith("CrossSection")
                     ):
                         xs[t[0]] = t[1]
-                except ValueError as e:
+                except Exception as e:
                     if verbose:
-                        logger.warn(f"error in {t[0]}: {e}")
+                        logger.warning(f"error in {t[0]}: {e}")
     return xs
 
 
-xs_sc = strip()
-xs_rc = rib(bbox_layers=["DEVREC"], bbox_offsets=[0.0])
-xs_rc2 = rib2()
-xs_rc_bbox = rib_bbox()
-
-xs_sc_rc_tip = strip_rib_tip()
-xs_sc_nc_tip = strip_nitride_tip()
-xs_nc_sc_tip = strip_nitride_silicon_tip()
-xs_sc_heater_metal = strip_heater_metal()
-xs_sc_heater_metal_undercut = strip_heater_metal_undercut()
-xs_slot = slot()
-xs_nc = nitride()
-
-xs_heater_metal = heater_metal()
-xs_sc_heater_doped = strip_heater_doped()
-xs_sc_heater_doped_via_stack = strip_heater_doped_via_stack()
-
-xs_rc_heater_doped = rib_heater_doped()
-xs_rc_heater_doped_via_stack = rib_heater_doped_via_stack()
-xs_pn_ge = pn_ge_detector_si_contacts()
-
-xs_m1 = metal1()
-xs_m2 = metal2()
-xs_m3 = metal3()
-xs_m3_bend = metal3(radius=10)
-xs_metal_routing = xs_m3
-xs_rc_with_trenches = rib_with_trenches()
-
-xs_pn = pn()
-xs_pin = pin()
-xs_npp = npp()
-xs_pn_with_trenches = pn_with_trenches()
-xs_pn_with_trenches_asymmetric = pn_with_trenches_asymmetric()
-
-cross_sections = get_cross_sections(sys.modules[__name__])
+# cross_sections = get_cross_sections(sys.modules[__name__])
 
 
 if __name__ == "__main__":
@@ -2411,8 +2741,14 @@ if __name__ == "__main__":
     # c = p.extrude(xs)
     # c = gf.c.straight(cross_section=xs)
     # xs = pn(slab_inset=0.2)
-    xs = strip()
-    d = xs.dict()
-    print(d)
-    # c = gf.c.straight(cross_section=xs)
-    # c.show()
+    # xs = metal1()
+    # s0 = Section(width=2, layer=(1, 0))
+    # xs = strip()
+    # print(xs.name)
+    import gdsfactory as gf
+
+    xs1 = gf.get_cross_section("metal_routing")
+
+    xs2 = xs1.copy(width=10)
+    assert xs2.name == xs1.name, f"{xs2.name} != {xs1.name}"
+    print(xs2.name)

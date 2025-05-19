@@ -1,19 +1,14 @@
-function: mmi
 info: {}
-module: gdsfactory.components.mmi
-name: mmi
+name: mmi_gdsfactorypcomponen_71888a21
 settings:
-  cross_section: xs_sc
+  cross_section: strip
   gap_input_tapers: 0.25
   gap_output_tapers: 0.25
-  input_positions: null
   inputs: 1
   length_mmi: 5.5
-  length_taper: 10.0
-  output_positions: null
+  length_taper: 10
   outputs: 4
-  taper:
-    function: taper
-  width: null
+  straight: straight
+  taper: taper
   width_mmi: 5
-  width_taper: 1.0
+  width_taper: 1

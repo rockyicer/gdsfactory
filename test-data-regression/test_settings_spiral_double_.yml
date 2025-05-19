@@ -1,13 +1,10 @@
-function: spiral_double
 info:
-  length: 635.0904965875375
-module: gdsfactory.components.spiral_double
-name: spiral_double
+  length: 635.09
+name: spiral_double_gdsfactor_2988a5f7
 settings:
-  bend:
-    function: bend_circular
-  cross_section: xs_sc
-  min_bend_radius: null
+  bend: bend_circular
+  cross_section: strip
+  min_bend_radius: 10
   npoints: 1000
   number_of_loops: 3
-  separation: 2.0
+  separation: 2

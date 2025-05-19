@@ -8,9 +8,19 @@ import pathlib
 import shutil
 import sys
 
+from git import Repo
+
 from gdsfactory.config import PATH
 
 home = pathlib.Path.home()
+
+
+def clone_repository(repo_url: str, clone_dir: pathlib.Path) -> None:
+    try:
+        Repo.clone_from(repo_url, clone_dir)
+        print(f"Repository cloned to {clone_dir}")
+    except Exception as e:
+        print("Error cloning repository:", e)
 
 
 def remove_path_or_dir(dest: pathlib.Path) -> None:
@@ -22,7 +32,7 @@ def remove_path_or_dir(dest: pathlib.Path) -> None:
         os.remove(dest)
 
 
-def make_link(src, dest, overwrite: bool = True) -> None:
+def make_link(src: pathlib.Path, dest: pathlib.Path, overwrite: bool = True) -> None:
     dest = pathlib.Path(dest)
     if dest.exists() and not overwrite:
         print(f"{dest} already exists")
@@ -32,13 +42,14 @@ def make_link(src, dest, overwrite: bool = True) -> None:
         remove_path_or_dir(dest)
     try:
         os.symlink(src, dest, target_is_directory=True)
+        print("Symlink made:")
     except OSError as err:
         print("Could not create symlink!")
         print("     Error: ", err)
         if sys.platform == "win32":
             # https://stackoverflow.com/questions/32877260/privlege-error-trying-to-create-symlink-using-python-on-windows-10
             shutil.copytree(src, dest)
-    print("Symlink made:")
+            print("Copied directory:")
     print(f"From: {src}")
     print(f"To:   {dest}")
 
@@ -131,11 +142,24 @@ def install_klayout_package() -> None:
     Equivalent to using KLayout package manager.
     """
     cwd = pathlib.Path(__file__).resolve().parent
+
+    # install layermap
     _install_to_klayout(
         src=cwd / "generic_tech" / "klayout",
         klayout_subdir_name="salt",
         package_name="gdsfactory",
     )
+
+    klayout_folder = "KLayout" if sys.platform == "win32" else ".klayout"
+    subdir = home / klayout_folder / "salt"
+
+    # install metainfo-ports
+    clone_repository(
+        "git@github.com:gdsfactory/metainfo-ports.git", subdir / "metainfo-ports"
+    )
+
+    # install klive
+    clone_repository("git@github.com:gdsfactory/klive.git", subdir / "klive")
 
 
 def install_klayout_technology(
@@ -149,10 +173,13 @@ def install_klayout_technology(
     )
 
 
-py_files = PATH.notebooks.glob("**/*.py")
+py_files = list(PATH.notebooks.glob("**/*.py"))
 
 
-def convert_py_to_ipynb(files=py_files, output_folder=PATH.cwd / "notebooks") -> None:
+def convert_py_to_ipynb(
+    files: list[pathlib.Path] = py_files,
+    output_folder: pathlib.Path = PATH.cwd / "notebooks",
+) -> None:
     """Convert notebooks from markdown to ipynb."""
     import jupytext
 
@@ -171,5 +198,5 @@ if __name__ == "__main__":
 
     # write_git_attributes()
     # install_gdsdiff()
-    # install_klayout_package()
-    convert_py_to_ipynb()
+    install_klayout_package()
+    # convert_py_to_ipynb()

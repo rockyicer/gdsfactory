@@ -1,47 +1,19 @@
-function: via_corner
 info:
-  length: 10.0
+  length: 10
   size:
-  - 10.0
-  - 10.0
-module: gdsfactory.components.via_corner
-name: via_corner
+  - 10
+  - 10
+name: via_corner_gdsfactorypc_aeaeec6c
 settings:
   cross_section:
-  - - function: cross_section
-      module: gdsfactory.cross_section
-      settings:
-        layer: M2
-        port_names:
-        - e1
-        - e2
-        port_types:
-        - electrical
-        - electrical
-        radius: null
-        width: 10.0
+  - - metal2
     - - 0
       - 180
-  - - function: cross_section
-      module: gdsfactory.cross_section
-      settings:
-        layer: M3
-        port_names:
-        - e1
-        - e2
-        port_types:
-        - electrical
-        - electrical
-        radius: null
-        width: 10.0
+  - - metal3
     - - 90
       - 270
   layers_labels:
   - m2
   - m3
   vias:
-  - function: via
-    module: gdsfactory.components.via
-    settings:
-      enclosure: 2
-      layer: VIA1
+  - via1

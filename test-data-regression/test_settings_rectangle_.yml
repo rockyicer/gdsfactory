@@ -1,8 +1,5 @@
-function: rectangle
-info:
-  area: 8.0
-module: gdsfactory.components.rectangle
-name: rectangle
+info: {}
+name: rectangle_gdsfactorypco_951d36bb
 settings:
   centered: false
   layer: WG
@@ -12,8 +9,6 @@ settings:
   - 0
   - -90
   port_type: electrical
-  round_corners_east_west: false
-  round_corners_north_south: false
   size:
-  - 4.0
-  - 2.0
+  - 4
+  - 2

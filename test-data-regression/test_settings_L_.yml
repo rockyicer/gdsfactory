@@ -1,7 +1,5 @@
-function: L
 info: {}
-module: gdsfactory.components.L
-name: L
+name: L_gdsfactorypcomponents_a65df567
 settings:
   layer: MTOP
   port_type: electrical

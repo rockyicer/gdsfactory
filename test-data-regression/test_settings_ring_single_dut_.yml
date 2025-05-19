@@ -1,22 +1,12 @@
-function: ring_single_dut
 info: {}
-module: gdsfactory.components.ring_single_dut
-name: ring_single_dut
+name: ring_single_dut_gdsfact_8e89b00d
 settings:
-  bend:
-    function: bend_euler
-  component:
-    function: taper
-    module: gdsfactory.components.taper
-    settings:
-      width2: 3
-  coupler:
-    function: coupler_ring
+  bend: bend_euler
+  component: straight
+  coupler: coupler_ring
   gap: 0.2
   length_x: 4
   length_y: 0
   port_name: o1
-  radius: 5.0
-  straight:
-    function: straight
+  radius: 5
   with_component: true

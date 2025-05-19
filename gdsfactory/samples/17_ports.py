@@ -25,14 +25,12 @@ def component_with_port(
         length: in um.
         width: waveguide width in um.
         layer: layer.
-
     """
-    y = width
-    x = length
-
     c = gf.Component()
-    c.add_polygon([(0, 0), (x, 0), (x, y), (0, y)], layer=layer)
-    c.add_port(name="o1", center=(0, y / 2), width=y, orientation=180, layer=layer)
+    c.add_polygon([(0, 0), (length, 0), (length, width), (0, width)], layer=layer)
+    c.add_port(
+        name="o1", center=(0, width / 2), width=width, orientation=180, layer=layer
+    )
     assert len(c.ports) == 1
     return c
 
@@ -43,4 +41,4 @@ def test_component_with_port() -> None:
 
 if __name__ == "__main__":
     c = component_with_port()
-    c.show(show_ports=True)
+    c.show()

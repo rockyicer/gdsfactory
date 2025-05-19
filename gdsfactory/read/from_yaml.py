@@ -49,27 +49,47 @@ routes:
 
 from __future__ import annotations
 
-import importlib
-import io
 import pathlib
+import re
 import warnings
 from collections.abc import Callable
+from copy import deepcopy
 from functools import partial
-from typing import IO, Any, Literal
+from typing import IO, TYPE_CHECKING, Any, Literal, Protocol, cast
 
-import numpy as np
-from omegaconf import DictConfig, OmegaConf
+import kfactory as kf
+import networkx as nx
+import yaml
 
+from gdsfactory import typings
 from gdsfactory.add_pins import add_instance_label
-from gdsfactory.cell import cell
-from gdsfactory.component import (
-    Component,
-    ComponentReference,
-    valid_anchor_point_keywords,
-    valid_anchor_value_keywords,
-    valid_anchors,
+from gdsfactory.component import Component, ComponentReference
+from gdsfactory.schematic import (
+    Bundle,
+    GridArray,
+    Netlist,
+    OrthogonalGridArray,
+    Placement,
 )
-from gdsfactory.typings import Route
+from gdsfactory.schematic import Instance as NetlistInstance
+from gdsfactory.typings import LayerSpec, Route, RoutingStrategies
+
+if TYPE_CHECKING:
+    from gdsfactory.pdk import Pdk
+
+
+class LabelInstanceFunction(Protocol):
+    def __call__(
+        self,
+        component: Component,
+        reference: ComponentReference,
+        layer: LayerSpec | None = None,
+        instance_name: str | None = None,
+    ) -> None: ...
+
+
+PlacementConf = dict[str, dict[str, int | float | str]]
+ConnectionsByTransformedInst = dict[str, dict[str, str]]
 
 valid_placement_keys = [
     "x",
@@ -91,6 +111,7 @@ valid_top_level_keys = [
     "instances",
     "placements",
     "connections",
+    "nets",
     "ports",
     "routes",
     "settings",
@@ -100,6 +121,31 @@ valid_top_level_keys = [
     "schema",
     "schema_version",
 ]
+
+valid_anchor_point_keywords = [
+    "ce",
+    "cw",
+    "nc",
+    "ne",
+    "nw",
+    "sc",
+    "se",
+    "sw",
+    "center",
+    "cc",
+]
+# refer to an (x,y) Point
+
+valid_anchor_value_keywords = [
+    "south",
+    "west",
+    "east",
+    "north",
+]
+# refer to a singular (x or y) value
+
+valid_anchor_keywords = valid_anchor_point_keywords + valid_anchor_value_keywords
+# full set of valid anchor keywords (either referring to points or values)
 
 valid_route_keys = [
     "links",
@@ -111,20 +157,20 @@ valid_route_keys = [
 
 def _get_anchor_point_from_name(
     ref: ComponentReference, anchor_name: str
-) -> np.ndarray | None:
+) -> tuple[float, float] | None:
     if anchor_name in valid_anchor_point_keywords:
-        return getattr(ref.size_info, anchor_name)
+        return cast(tuple[float, float], getattr(ref.dsize_info, anchor_name))
     elif anchor_name in ref.ports:
         return ref.ports[anchor_name].center
-    else:
-        return None
+    return None
 
 
 def _get_anchor_value_from_name(
     ref: ComponentReference, anchor_name: str, return_value: str
 ) -> float | None:
+    """Return the x or y value of an anchor point or port on a reference."""
     if anchor_name in valid_anchor_value_keywords:
-        return getattr(ref.size_info, anchor_name)
+        return float(getattr(ref.dsize_info, anchor_name))
     anchor_point = _get_anchor_point_from_name(ref, anchor_name)
     if anchor_point is None:
         return None
@@ -139,12 +185,12 @@ def _get_anchor_value_from_name(
 def _move_ref(
     x: str | float,
     x_or_y: Literal["x", "y"],
-    placements_conf,
-    connections_by_transformed_inst,
-    instances,
-    encountered_insts,
-    all_remaining_insts,
-) -> float:
+    placements_conf: PlacementConf,
+    connections_by_transformed_inst: ConnectionsByTransformedInst,
+    instances: dict[str, ComponentReference],
+    encountered_insts: list[str],
+    all_remaining_insts: list[str],
+) -> float | None:
     if not isinstance(x, str):
         return x
     if len(x.split(",")) != 2:
@@ -168,16 +214,65 @@ def _move_ref(
         )
     if (
         port_name not in instances[instance_name_ref].ports
-        and port_name not in valid_anchors
+        and port_name not in valid_anchor_keywords
     ):
-        ports = list(instances[instance_name_ref].ports.keys())
+        ports = [p.name for p in instances[instance_name_ref].ports]
         raise ValueError(
             f"port = {port_name!r} can be a port_name in {ports}, "
-            f"an anchor {valid_anchors} for {instance_name_ref!r}, "
+            f"an anchor {valid_anchor_keywords} for {instance_name_ref!r}, "
             f"or `{x_or_y}: instanceName,portName`, got `{x_or_y}: {x!r}`"
         )
 
     return _get_anchor_value_from_name(instances[instance_name_ref], port_name, x_or_y)
+
+
+def _parse_maybe_arrayed_instance(inst_spec: str) -> tuple[str, int | None, int | None]:
+    """Parse an instance specifier that may or may not be arrayed.
+
+    Returns the instance name, and the a and b indices if they are present.
+    """
+    # Fast path: not arrayed
+    left = inst_spec.find("<")
+    if left == -1 or not inst_spec.endswith(">"):
+        return inst_spec, None, None
+
+    # Check for multiple '<' early
+    if inst_spec.find("<", left + 1) != -1:
+        raise ValueError(
+            f"Too many angle brackets (<) in instance specification '{inst_spec}'. "
+            "Array ref indices should end with <ia.ib>, and otherwise this character should be avoided."
+        )
+
+    inst_name = inst_spec[:left]
+    array_spec = inst_spec[left + 1 : -1]  # between < and >, excluding >
+    dot = array_spec.find(".")
+    if dot == -1:
+        raise ValueError(
+            f"Array specifier should contain a '.' and be of the format my_ref<ia.ib>. Got {inst_spec}"
+        )
+    # Check for too many periods
+    if array_spec.find(".", dot + 1) != -1:
+        raise ValueError(
+            f"Too many periods (.) in array specifier. Array specifier should be of the format my_ref<ia.ib>. Got {inst_spec}"
+        )
+
+    ia = array_spec[:dot]
+    ib = array_spec[dot + 1 :]
+    try:
+        ia_int = int(ia)
+    except ValueError as e:
+        raise ValueError(
+            f"When parsing array reference specifier '{inst_spec}', got a non-integer index '{ia}'"
+        ) from e
+
+    try:
+        ib_int = int(ib)
+    except ValueError as e:
+        raise ValueError(
+            f"When parsing array reference specifier '{inst_spec}', got a non-integer index '{ib}'"
+        ) from e
+
+    return inst_name, ia_int, ib_int
 
 
 def place(
@@ -243,34 +338,43 @@ def place(
         rotation = placement_settings.get("rotation")
         mirror = placement_settings.get("mirror")
 
+        assert isinstance(rotation, int | float | None), "rotation must be a number"
+        assert isinstance(port, str | None), "port must be a string or None"
+
+        if rotation:
+            if port:
+                ref.rotate(rotation, center=_get_anchor_point_from_name(ref, port))
+            else:
+                ref.rotate(rotation)
+
         if mirror:
             if mirror is True and port:
-                ref.mirror_x(x0=_get_anchor_value_from_name(ref, port, "x"))
+                ref.dmirror_x(x=_get_anchor_value_from_name(ref, port, "x") or 0)
             elif mirror is True:
-                if x is not None:
-                    ref.mirror_x(x0=_get_anchor_value_from_name(ref, x, "x"))
-                else:
-                    ref.mirror_x()
+                ref.dcplx_trans *= kf.kdb.DCplxTrans(1, 0, True, 0, 0)
             elif mirror is False:
                 pass
             elif isinstance(mirror, str):
-                ref.mirror_x(port_name=mirror)
+                x_mirror = ref.ports[mirror].x
+                ref.dmirror_x(x_mirror)
             elif isinstance(mirror, int | float):
-                ref.mirror_x(x0=mirror)
+                ref.dmirror_x(x=ref.x)
             else:
+                port_names = [port.name for port in ref.ports]
                 raise ValueError(
-                    f"{mirror!r} can only be a port name {ref.ports.keys()}, "
+                    f"{mirror!r} can only be a port name {port_names}, "
                     "x value or True/False"
                 )
 
         if port:
             a = _get_anchor_point_from_name(ref, port)
             if a is None:
+                port_names = [port.name for port in ref.ports]
                 raise ValueError(
                     f"Port {port!r} is neither a valid port on {ref.parent.name!r}"
                     " nor a recognized anchor keyword.\n"
                     "Valid ports: \n"
-                    f"{list(ref.ports.keys())}. \n"
+                    f"{port_names}. \n"
                     "Valid keywords: \n"
                     f"{valid_anchor_point_keywords}",
                 )
@@ -278,7 +382,7 @@ def place(
             ref.y -= a[1]
 
         if x is not None:
-            ref.x += _move_ref(
+            _dx = _move_ref(
                 x,
                 x_or_y="x",
                 placements_conf=placements_conf,
@@ -287,12 +391,11 @@ def place(
                 encountered_insts=encountered_insts,
                 all_remaining_insts=all_remaining_insts,
             )
-
-        # print(instance_name, x, xmin, xmax, y, ymin, ymax)
-        # print(ymin, y or ymin or ymax)
+            assert _dx is not None
+            ref.x += _dx
 
         if y is not None:
-            ref.y += _move_ref(
+            _dy = _move_ref(
                 y,
                 x_or_y="y",
                 placements_conf=placements_conf,
@@ -301,19 +404,13 @@ def place(
                 encountered_insts=encountered_insts,
                 all_remaining_insts=all_remaining_insts,
             )
-
-        if rotation:
-            if port:
-                ref.rotate(rotation, center=_get_anchor_point_from_name(ref, port))
-            else:
-                x, y = ref.origin
-                ref.rotate(rotation, center=(x, y))
-                # ref.rotate(rotation, center=(ref.x, ref.y))
+            assert _dy is not None
+            ref.y += _dy
 
         if ymin is not None and ymax is not None:
             raise ValueError("You cannot set ymin and ymax")
         elif ymax is not None:
-            ref.ymax = _move_ref(
+            dymax = _move_ref(
                 ymax,
                 x_or_y="y",
                 placements_conf=placements_conf,
@@ -322,8 +419,10 @@ def place(
                 encountered_insts=encountered_insts,
                 all_remaining_insts=all_remaining_insts,
             )
+            assert dymax is not None
+            ref.ymax = dymax
         elif ymin is not None:
-            ref.ymin = _move_ref(
+            dymin = _move_ref(
                 ymin,
                 x_or_y="y",
                 placements_conf=placements_conf,
@@ -332,11 +431,13 @@ def place(
                 encountered_insts=encountered_insts,
                 all_remaining_insts=all_remaining_insts,
             )
+            assert dymin is not None
+            ref.ymin = dymin
 
         if xmin is not None and xmax is not None:
             raise ValueError("You cannot set xmin and xmax")
         elif xmin is not None:
-            ref.xmin = _move_ref(
+            dxmin = _move_ref(
                 xmin,
                 x_or_y="x",
                 placements_conf=placements_conf,
@@ -345,8 +446,10 @@ def place(
                 encountered_insts=encountered_insts,
                 all_remaining_insts=all_remaining_insts,
             )
+            assert dxmin is not None
+            ref.xmin = dxmin
         elif xmax is not None:
-            ref.xmax = _move_ref(
+            dxmax = _move_ref(
                 xmax,
                 x_or_y="x",
                 placements_conf=placements_conf,
@@ -355,11 +458,13 @@ def place(
                 encountered_insts=encountered_insts,
                 all_remaining_insts=all_remaining_insts,
             )
+            assert dxmax is not None
+            ref.xmax = dxmax
         if dx:
-            ref.x += dx
+            ref.x += float(dx)
 
         if dy:
-            ref.y += dy
+            ref.y += float(dy)
 
     if instance_name in connections_by_transformed_inst:
         conn_info = connections_by_transformed_inst[instance_name]
@@ -374,24 +479,38 @@ def place(
                 all_remaining_insts,
             )
 
-        make_connection(instances=instances, **conn_info)
-        # placements_conf.pop(instance_name)
+        make_connection(instances=instances, **conn_info)  # type: ignore[arg-type]
 
 
-def transform_connections_dict(connections_conf: dict[str, str]) -> dict[str, dict]:
+def transform_connections_dict(
+    connections_conf: dict[str, str],
+) -> dict[str, dict[str, str | int | None]]:
     """Returns Dict with source_instance_name key and connection properties."""
     if not connections_conf:
         return {}
-    attrs_by_src_inst = {}
+    attrs_by_src_inst: dict[str, dict[str, str | int | None]] = {}
     for port_src_string, port_dst_string in connections_conf.items():
         instance_src_name, port_src_name = port_src_string.split(",")
         instance_dst_name, port_dst_name = port_dst_string.split(",")
+        instance_src_name, src_ia, src_ib = _parse_maybe_arrayed_instance(
+            instance_src_name
+        )
+        instance_dst_name, dst_ia, dst_ib = _parse_maybe_arrayed_instance(
+            instance_dst_name
+        )
         attrs_by_src_inst[instance_src_name] = {
             "instance_src_name": instance_src_name,
             "port_src_name": port_src_name,
             "instance_dst_name": instance_dst_name,
             "port_dst_name": port_dst_name,
         }
+        src_dict = attrs_by_src_inst[instance_src_name]
+        if src_ia is not None:
+            src_dict["src_ia"] = src_ia
+            src_dict["src_ib"] = src_ib
+        if dst_ia is not None:
+            src_dict["dst_ia"] = dst_ia
+            src_dict["dst_ib"] = dst_ib
     return attrs_by_src_inst
 
 
@@ -401,6 +520,10 @@ def make_connection(
     instance_dst_name: str,
     port_dst_name: str,
     instances: dict[str, ComponentReference],
+    src_ia: int | None = None,
+    src_ib: int | None = None,
+    dst_ia: int | None = None,
+    dst_ib: int | None = None,
 ) -> None:
     """Connect instance_src_name,port to instance_dst_name,port.
 
@@ -410,6 +533,10 @@ def make_connection(
         instance_dst_name: destination instance name.
         port_dst_name: from instance_dst_name.
         instances: dict of instances.
+        src_ia: the a-index of the source instance, if it is an arrayed instance
+        src_ib: the b-index of the source instance, if it is an arrayed instance
+        dst_ia: the a-index of the destination instance, if it is an arrayed instance
+        dst_ib: the b-index of the destination instance, if it is an arrayed instance
 
     """
     instance_src_name = instance_src_name.strip()
@@ -425,17 +552,34 @@ def make_connection(
     instance_dst = instances[instance_dst_name]
 
     if port_src_name not in instance_src.ports:
+        instance_src_port_names = [p.name for p in instance_src.ports]
         raise ValueError(
-            f"{port_src_name} not in {list(instance_src.ports.keys())} for"
+            f"{port_src_name!r} not in {instance_src_port_names} for"
             f" {instance_src_name!r} "
         )
     if port_dst_name not in instance_dst.ports:
+        instance_dst_port_names = [p.name for p in instance_dst.ports]
         raise ValueError(
-            f"{port_dst_name!r} not in {list(instance_dst.ports.keys())} for"
+            f"{port_dst_name!r} not in {instance_dst_port_names} for"
             f" {instance_dst_name!r}"
         )
-    port_dst = instance_dst.ports[port_dst_name]
-    instance_src.connect(port=port_src_name, destination=port_dst)
+
+    if src_ia is None or src_ib is None:
+        src_port = instance_src.ports[port_src_name]
+    else:
+        src_port = instance_src.ports[port_src_name, src_ia, src_ib]
+
+    # if dst_ia is None or dst_ib is None:
+    #     instance_src.connect(port=src_port, other=instance_dst, other_port_name=port_dst_name, use_mirror=True, mirror=True)
+    # else:
+    #     print('here')
+    #     instance_src.connect(port=src_port, other=instance_dst, other_port_name=(port_dst_name, dst_ia, dst_ib), use_mirror=True, mirror=True)
+
+    if dst_ia is None or dst_ib is None:
+        dst_port = instance_dst.ports[port_dst_name]
+    else:
+        dst_port = instance_dst.ports[port_dst_name, dst_ia, dst_ib]
+    instance_src.connect(port=src_port, other=dst_port, use_mirror=True, mirror=False)
 
 
 sample_mmis = """
@@ -468,6 +612,8 @@ routes:
     route_name1:
         links:
             mmi_short,o2: mmi_long,o1
+        settings:
+            cross_section: strip
 
 ports:
     o1: mmi_short,o1
@@ -477,18 +623,18 @@ ports:
 
 
 def cell_from_yaml(
-    yaml_str: str | pathlib.Path | IO[Any] | dict[str, Any] | DictConfig,
-    routing_strategy: dict[str, Callable] | None = None,
-    label_instance_function: Callable = add_instance_label,
-    **kwargs,
-) -> Callable:
+    yaml_str: str | pathlib.Path | IO[Any] | dict[str, Any],
+    routing_strategies: RoutingStrategies | None = None,
+    label_instance_function: LabelInstanceFunction = add_instance_label,
+    name: str | None = None,
+) -> Callable[[], Component]:
     """Returns Component factory from YAML string or file.
 
     YAML includes instances, placements, routes, ports and connections.
 
     Args:
-        yaml: YAML string or file.
-        routing_strategy: for each route.
+        yaml_str: YAML string or file.
+        routing_strategies: for each route.
         label_instance_function: to label each instance.
         name: Optional name.
         kwargs: function settings for creating YAML PCells.
@@ -560,36 +706,32 @@ def cell_from_yaml(
                     mmi_top,o3: mmi_bot,o1
 
     """
+    routing_strategies = routing_strategies or {}
+
     return partial(
         from_yaml,
         yaml_str=yaml_str,
-        routing_strategy=routing_strategy,
+        routing_strategies=routing_strategies,
         label_instance_function=label_instance_function,
-        **kwargs,
+        name=name,
     )
 
 
 def from_yaml(
-    yaml_str: str | pathlib.Path | IO[Any] | dict[str, Any] | DictConfig,
-    routing_strategy: dict[str, Callable] | None = None,
-    label_instance_function: Callable = add_instance_label,
+    yaml_str: str | pathlib.Path | IO[Any] | dict[str, Any],
+    routing_strategies: RoutingStrategies | None = None,
+    label_instance_function: LabelInstanceFunction = add_instance_label,
     name: str | None = None,
-    prefix: str | None = None,
-    validate: bool = False,
-    **kwargs,
 ) -> Component:
     """Returns Component from YAML string or file.
 
     YAML includes instances, placements, routes, ports and connections.
 
     Args:
-        yaml: YAML string or file.
-        routing_strategy: for each route.
+        yaml_str: YAML string or file.
+        routing_strategies: for each route.
         label_instance_function: to label each instance.
         name: Optional name.
-        prefix: name prefix.
-        validate: validate component.
-        kwargs: function settings for creating YAML PCells.
 
     .. code::
 
@@ -658,318 +800,507 @@ def from_yaml(
                     mmi_top,o3: mmi_bot,o1
 
     """
-    from gdsfactory.pdk import get_routing_strategies
-
-    if routing_strategy is None:
-        routing_strategy = get_routing_strategies()
-    if isinstance(yaml_str, str | pathlib.Path | IO):
-        yaml_str = (
-            io.StringIO(yaml_str)
-            if isinstance(yaml_str, str) and "\n" in yaml_str
-            else yaml_str
-        )
-
-        conf = OmegaConf.load(
-            yaml_str
-        )  # nicer loader than conf = yaml.safe_load(yaml_str)
-
-    else:
-        conf = OmegaConf.create(yaml_str)
-
-    for key in conf.keys():
-        if key not in valid_top_level_keys:
-            raise ValueError(f"{key!r} not in {list(valid_top_level_keys)}")
-
-    settings = conf.get("settings", {})
-
-    mode = kwargs.pop("mode") if "mode" in kwargs else "layout"
-    for key, value in kwargs.items():
-        if key not in settings:
-            raise ValueError(f"{key!r} not in {settings.keys()}")
-        else:
-            conf["settings"][key] = value
-
-    c = _from_yaml(
-        conf=OmegaConf.to_container(conf, resolve=True),
-        routing_strategy=routing_strategy,
-        label_instance_function=label_instance_function,
-        mode=mode,
-        prefix=prefix or conf.get("name", "Unnamed"),
-        name=name,
-        validate=validate,
-    )
-    return c
-
-
-@cell
-def _from_yaml(
-    conf,
-    routing_strategy: dict[str, Callable],
-    label_instance_function: Callable = add_instance_label,
-    mode: str = "layout",
-    validate: bool = False,
-) -> Component:
-    """Returns component from YAML decorated with cell for caching and autonaming.
-
-    Args:
-        conf: dict.
-        routing_strategy: for each route.
-        label_instance_function: to label each instance.
-        mode: layout or schematic.
-        validate: validate component.
-    """
-    from gdsfactory.generic_tech import get_generic_pdk
     from gdsfactory.pdk import get_active_pdk
 
-    GENERIC = get_generic_pdk()
+    routing_strategies = routing_strategies or {}
 
     c = Component()
-    instances = {}
-    routes = {}
-
-    placements_conf = conf.get("placements")
-    routes_conf = conf.get("routes")
-    ports_conf = conf.get("ports")
-    connections_conf = conf.get("connections")
-    instances_dict = conf["instances"]
-    pdk = conf.get("pdk")
-    c.info.update(conf.get("info", {}))
-
-    if pdk and pdk == "generic":
-        GENERIC.activate()
-
-    elif pdk:
-        module = importlib.import_module(pdk)
-        pdk = module.PDK
-        if pdk is None:
-            raise ValueError(f"'from {pdk} import PDK' failed")
-        pdk.activate()
-
+    dct = _load_yaml_str(yaml_str)
     pdk = get_active_pdk()
-    if mode == "layout":
-        if validate:
-            component_getter = partial(pdk.get_component, validate=True)
+    net = Netlist.model_validate(dct)
+    g = _get_dependency_graph(net)
+    refs = _get_references(c, pdk, net.instances)
+    _place_and_connect(g, refs, net.connections, net.placements)
+    c = _add_routes(c, refs, net.routes, routing_strategies)
+    c = _add_ports(c, refs, net.ports)
+    c = _add_labels(c, refs, label_instance_function)
+    c.name = name or net.name or c.name
+    return c
 
-        else:
-            component_getter = pdk.get_component
-    elif mode == "schematic":
-        component_getter = pdk.get_symbol
+
+def _load_yaml_str(yaml_str: Any) -> dict[str, Any]:
+    dct: dict[str, Any] = {}
+    if isinstance(yaml_str, dict):
+        dct = deepcopy(yaml_str)
+    elif isinstance(yaml_str, Netlist):
+        dct = deepcopy(yaml_str.model_dump())
+    elif (isinstance(yaml_str, str) and "\n" in yaml_str) or isinstance(yaml_str, IO):
+        dct = yaml.load(yaml_str, Loader=yaml.FullLoader)
+    elif isinstance(yaml_str, str):
+        dct = yaml.load(open(yaml_str), Loader=yaml.FullLoader)
+    elif isinstance(yaml_str, pathlib.Path):
+        dct = yaml.load(open(yaml_str), Loader=yaml.FullLoader)
     else:
-        raise ValueError(
-            f"{mode} is not a recognized mode. Please choose 'layout' or 'schematic'"
-        )
+        raise ValueError("Invalid format for 'yaml_str'.")
+    return dct
 
-    for instance_name in instances_dict:
-        instance_conf = instances_dict[instance_name]
-        component = instance_conf["component"]
-        settings = instance_conf.get("settings", {})
-        component_spec = {"component": component, "settings": settings}
-        component = component_getter(component_spec)
-        ref = c.add_ref(component, alias=instance_name)
-        instances[instance_name] = ref
 
-    placements_conf = dict() if placements_conf is None else placements_conf
+def _get_dependency_graph(net: Netlist) -> nx.DiGraph:
+    g = nx.DiGraph()
+    allowed_keys = {"x", "y", "xmin", "ymin", "xmax", "ymax"}
 
-    connections_by_transformed_inst = transform_connections_dict(connections_conf)
-    components_to_place = set(placements_conf.keys())
-    components_with_placement_conflicts = components_to_place.intersection(
-        connections_by_transformed_inst.keys()
-    )
-    for instance_name in components_with_placement_conflicts:
-        placement_settings = placements_conf[instance_name]
-        if "x" in placement_settings or "y" in placement_settings:
-            warnings.warn(
-                f"YAML defined: ({', '.join(components_with_placement_conflicts)}) "
-                "with both connection and placement. Please use one or the other.",
+    # Add nodes once, then add edges for arrays (avoiding repeated function calls)
+    for i, inst in net.instances.items():
+        g.add_node(i)
+        arr = inst.array
+        if isinstance(arr, OrthogonalGridArray):
+            r, c = arr.rows, arr.columns
+            if r >= 2 or c >= 2:
+                fbase = f"{i}<"
+                for a in range(r):
+                    for b in range(c):
+                        g.add_edge(i, f"{fbase}{a}.{b}>")
+        elif isinstance(arr, GridArray):
+            r, c = arr.num_a, arr.num_b
+            if r >= 2 or c >= 2:
+                fbase = f"{i}<"
+                for a in range(r):
+                    for b in range(c):
+                        g.add_edge(i, f"{fbase}{a}.{b}>")
+
+    # Directly split only the first occurrence, use tuple unpacking for safety
+    for ip1, ip2 in net.connections.items():
+        i1 = ip1.split(",", 1)[0]
+        i2 = ip2.split(",", 1)[0]
+        g.add_edge(i2, i1)
+
+    # Use set lookup for allowed keys, and perform checks with minimal nesting
+    for i1, pl in net.placements.items():
+        for k, v in pl:
+            if k not in allowed_keys or not isinstance(v, str) or "," not in v:
+                continue
+            i2 = v.split(",", 1)[0]
+            g.add_edge(i2, i1)
+
+    # Fast cycle check using built-in NetworkX function
+    # The error message will show a single example cycle, since that's sufficient for debugging
+    if not nx.is_directed_acyclic_graph(g):
+        try:
+            example_cycle = nx.find_cycle(g, orientation="original")
+            cycle_nodes = [e[0] for e in example_cycle] + [example_cycle[0][0]]
+            raise RuntimeError(
+                "Cyclical references when placing / connecting instances:\n"
+                + "->".join(cycle_nodes)
+            )
+        except nx.NetworkXNoCycle:
+            raise RuntimeError(
+                "Cyclical references detected, but no cycle found (unexpected state)"
             )
 
-    all_remaining_insts = list(
-        set(placements_conf.keys()).union(set(connections_by_transformed_inst.keys()))
-    )
+    return g
 
-    while all_remaining_insts:
-        place(
-            placements_conf=placements_conf,
-            connections_by_transformed_inst=connections_by_transformed_inst,
-            instances=instances,
-            encountered_insts=[],
-            all_remaining_insts=all_remaining_insts,
-        )
 
-    for instance_name in instances_dict:
-        label_instance_function(
-            component=c, instance_name=instance_name, reference=instances[instance_name]
-        )
+def _get_references(
+    c: Component, pdk: "Pdk", instances: dict[str, NetlistInstance]
+) -> dict[str, ComponentReference]:
+    refs: dict[str, ComponentReference] = {}
+    for name, inst in instances.items():
+        comp = pdk.get_component(component=inst.component, settings=inst.settings)
+        if isinstance(inst.array, OrthogonalGridArray):
+            ref = c.add_ref(
+                comp,
+                rows=inst.array.rows,
+                columns=inst.array.columns,
+                name=name,
+                column_pitch=inst.array.column_pitch,
+                row_pitch=inst.array.row_pitch,
+            )
+        elif isinstance(inst.array, GridArray):
+            ref = c.create_inst(
+                comp,
+                na=inst.array.num_a,
+                nb=inst.array.num_b,
+                a=kf.kdb.DVector(
+                    inst.array.pitch_a[0],
+                    inst.array.pitch_a[1],
+                ),
+                b=kf.kdb.DVector(
+                    inst.array.pitch_b[0],
+                    inst.array.pitch_b[1],
+                ),
+            )
+        else:
+            ref = c.add_ref(comp, name=name)
+        refs[name] = ref
+    return refs
 
-    if routes_conf:
-        for route_alias in routes_conf:
-            route_names = []
-            ports1 = []
-            ports2 = []
-            routes_dict = routes_conf[route_alias]
-            for key in routes_dict.keys():
-                if key not in valid_route_keys:
-                    raise ValueError(
-                        f"{route_alias!r} key={key!r} not in {valid_route_keys}"
-                    )
 
-            settings = routes_dict.pop("settings", {})
-            routing_strategy_name = routes_dict.pop("routing_strategy", "get_bundle")
-            if routing_strategy_name not in routing_strategy:
-                routing_strategies = list(routing_strategy.keys())
-                raise ValueError(
-                    f"{routing_strategy_name!r} is an invalid routing_strategy "
-                    f"{routing_strategies}"
-                )
+def _place_and_connect(
+    g: nx.DiGraph,
+    refs: dict[str, ComponentReference],
+    connections: dict[str, str],
+    placements: dict[str, Placement],
+) -> None:
+    directed_connections = _get_directed_connections(connections)
 
-            if "links" not in routes_dict:
-                raise ValueError(
-                    f"You need to define links for the {route_alias!r} route"
-                )
-            links_dict = routes_dict["links"]
+    for root in _graph_roots(g):
+        pl = placements.get(root)
+        if pl is not None:
+            _update_reference_by_placement(refs, root, pl)
+        for i2, i1 in nx.dfs_edges(g, root):
+            ports = directed_connections.get(i1, {}).get(i2, None)
+            pl = placements.get(i1)
+            if pl is not None:
+                _update_reference_by_placement(refs, i1, pl)
+            if ports is not None:  # no elif!
+                p1, p2 = ports
+                i2name, i2a, i2b = _parse_maybe_arrayed_instance(i2)
+                i1name, i1a, i1b = _parse_maybe_arrayed_instance(i1)
 
-            for port_src_string, port_dst_string in links_dict.items():
-                if ":" in port_src_string:
-                    src, src0, src1 = (s.strip() for s in port_src_string.split(":"))
-                    dst, dst0, dst1 = (s.strip() for s in port_dst_string.split(":"))
-                    instance_src_name, port_src_name = (
-                        s.strip() for s in src.split(",")
-                    )
-                    instance_dst_name, port_dst_name = (
-                        s.strip() for s in dst.split(",")
-                    )
+                for i in [i1name, i2name]:
+                    if i not in refs:
+                        raise ValueError(f"{i!r} not in {list(refs)}")
 
-                    src0 = int(src0)
-                    src1 = int(src1)
-                    dst0 = int(dst0)
-                    dst1 = int(dst1)
-
-                    if src1 > src0:
-                        ports1names = [
-                            f"{port_src_name}{i}" for i in range(src0, src1 + 1)
-                        ]
+                if i1a is not None and i1b is not None:
+                    port1 = refs[i1name].ports[p1, i1a, i1b]
+                    if i2a is not None and i2b is not None:
+                        refs[i1name].connect(port1, refs[i2name].ports[p2, i2a, i2b])
                     else:
-                        ports1names = [
-                            f"{port_src_name}{i}" for i in range(src0, src1 - 1, -1)
-                        ]
-
-                    if dst1 > dst0:
-                        ports2names = [
-                            f"{port_dst_name}{i}" for i in range(dst0, dst1 + 1)
-                        ]
-                    else:
-                        ports2names = [
-                            f"{port_dst_name}{i}" for i in range(dst0, dst1 - 1, -1)
-                        ]
-
-                    if len(ports1names) != len(ports2names):
-                        raise ValueError(f"{ports1names} different from {ports2names}")
-
-                    route_names += [
-                        f"{instance_src_name},{i}:{instance_dst_name},{j}"
-                        for i, j in zip(ports1names, ports2names)
-                    ]
-
-                    instance_src = instances[instance_src_name]
-                    instance_dst = instances[instance_dst_name]
-
-                    for port_src_name in ports1names:
-                        if port_src_name not in instance_src.ports:
-                            raise ValueError(
-                                f"{port_src_name!r} not in {list(instance_src.ports.keys())}"
-                                f"for {instance_src_name!r} "
-                            )
-                        ports1.append(instance_src.ports[port_src_name])
-
-                    for port_dst_name in ports2names:
-                        if port_dst_name not in instance_dst.ports:
-                            raise ValueError(
-                                f"{port_dst_name!r} not in {list(instance_dst.ports.keys())}"
-                                f"for {instance_dst_name!r}"
-                            )
-                        ports2.append(instance_dst.ports[port_dst_name])
+                        if i2 not in refs:
+                            raise ValueError(f"{i2!r} not in {list(refs)}")
+                        refs[i1name].connect(port1, other=refs[i2], other_port_name=p2)
 
                 else:
-                    instance_src_name, port_src_name = port_src_string.split(",")
-                    instance_dst_name, port_dst_name = port_dst_string.split(",")
-
-                    instance_src_name = instance_src_name.strip()
-                    instance_dst_name = instance_dst_name.strip()
-                    port_src_name = port_src_name.strip()
-                    port_dst_name = port_dst_name.strip()
-
-                    if instance_src_name not in instances:
-                        raise ValueError(
-                            f"{instance_src_name!r} not in {list(instances.keys())}"
+                    if i2a is not None and i2b is not None:
+                        if i1 not in refs:
+                            raise ValueError(f"{i1!r} not in {list(refs)}")
+                        refs[i1].connect(
+                            p1, other=refs[i2name], other_port_name=(p2, i2a, i2b)
                         )
-                    if instance_dst_name not in instances:
-                        raise ValueError(
-                            f"{instance_dst_name!r} not in {list(instances.keys())}"
-                        )
+                    else:
+                        if i1 not in refs:
+                            raise ValueError(f"{i1!r} not in {list(refs)}")
+                        if i2 not in refs:
+                            raise ValueError(f"{i2!r} not in {list(refs)}")
+                        refs[i1].connect(p1, other=refs[i2], other_port_name=p2)
 
-                    instance_src = instances[instance_src_name]
-                    instance_dst = instances[instance_dst_name]
 
-                    if port_src_name not in instance_src.ports:
-                        raise ValueError(
-                            f"{port_src_name!r} not in {list(instance_src.ports.keys())} for"
-                            f" {instance_src_name!r} "
-                        )
+def _add_routes(
+    c: Component,
+    refs: dict[str, ComponentReference],
+    routes: dict[str, Bundle],
+    routing_strategies: RoutingStrategies | None = None,
+) -> Component:
+    """Add routes to component."""
+    from gdsfactory.pdk import get_routing_strategies
 
-                    if port_dst_name not in instance_dst.ports:
-                        raise ValueError(
-                            f"{port_dst_name!r} not in {list(instance_dst.ports.keys())} for"
-                            f" {instance_dst_name!r}"
-                        )
+    routes_dict: dict[str, Route] = {}
+    routing_strategies = routing_strategies or get_routing_strategies()
+    for bundle_name, bundle in routes.items():
+        try:
+            routing_strategy = routing_strategies[bundle.routing_strategy]
+        except KeyError as e:
+            raise ValueError(
+                f"Unknown routing strategy.\nvalid strategies: {list(routing_strategies)}\n"
+                f"Got:{bundle.routing_strategy}"
+            ) from e
 
-                    ports1.append(instance_src.ports[port_src_name])
-                    ports2.append(instance_dst.ports[port_dst_name])
-                    route_name = f"{port_src_string}:{port_dst_string}"
-                    route_names.append(route_name)
+        ports1: list[typings.Port] = []
+        ports2: list[typings.Port] = []
+        route_names: list[str] = []
 
-            routing_function = routing_strategy[routing_strategy_name]
-            route_or_route_list = routing_function(
-                ports1=ports1,
-                ports2=ports2,
-                **settings,
-            )
-
-            # FIXME, be more consistent
-            if isinstance(route_or_route_list, list):
-                for route_name, route_dict in zip(route_names, route_or_route_list):
-                    c.add(route_dict.references)
-                    routes[route_name] = route_dict.length
-            elif isinstance(route_or_route_list, Route):
-                c.add(route_or_route_list.references)
-                routes[route_name] = route_or_route_list.length
-            else:
-                raise ValueError(f"{route_or_route_list} needs to be a Route or a list")
-
-    if ports_conf:
-        if not hasattr(ports_conf, "items"):
-            raise ValueError(f"{ports_conf} needs to be a dict")
-        for port_name, instance_comma_port in ports_conf.items():
-            if "," in instance_comma_port:
-                instance_name, instance_port_name = instance_comma_port.split(",")
-                instance_name = instance_name.strip()
-                instance_port_name = instance_port_name.strip()
-                if instance_name not in instances:
-                    raise ValueError(
-                        f"{instance_name!r} not in {list(instances.keys())}"
-                    )
-                instance = instances[instance_name]
-
-                if instance_port_name not in instance.ports:
-                    raise ValueError(
-                        f"{instance_port_name!r} not in {list(instance.ports.keys())} for"
-                        f" {instance_name!r} "
-                    )
-                c.add_port(port_name, port=instance.ports[instance_port_name])
-            else:
-                c.add_port(**instance_comma_port)
-
-    c.routes = routes
+        for ip1, ip2 in bundle.links.items():
+            first1, middles1, last1 = _split_route_link(ip1)
+            first2, middles2, last2 = _split_route_link(ip2)
+            if len(middles1) != len(middles2):
+                raise ValueError(
+                    f"length of array bundles don't match. Got {ip1} <-> {ip2}"
+                )
+            ports1 += _get_ports_from_portnames(refs, first1, middles1, last1)
+            ports2 += _get_ports_from_portnames(refs, first2, middles2, last2)
+            route_names += [
+                f"{bundle_name}-{first1}{m1}{last1}-{first2}{m2}{last2}"
+                for m1, m2 in zip(middles1, middles2)
+            ]
+        routes_list = routing_strategy(
+            c,
+            ports1=ports1,
+            ports2=ports2,
+            **bundle.settings,
+        )
+        routes_dict.update(dict(zip(route_names, routes_list)))
+        c.routes = routes_dict
     return c
+
+
+def _add_ports(
+    c: Component, refs: dict[str, ComponentReference], ports: dict[str, str]
+) -> Component:
+    """Add ports to Component using references and mapping."""
+    for name, ip in ports.items():
+        split = ip.split(",", 1)
+        i = split[0].strip()
+        p = split[1].strip()
+        i, ia, ib = _parse_maybe_arrayed_instance(i)
+        ref = refs.get(i)
+        if ref is None:
+            raise ValueError(f"{i!r} not in {list(refs)}")
+
+        # Optimize: Check port presence directly in mapping (faster than building list)
+        ports_keys = (
+            ref.ports._ports.keys()
+            if hasattr(ref.ports, "_ports")
+            else [p.name for p in ref.ports]
+        )
+        if p not in ports_keys:
+            raise ValueError(f"{p!r} not in {list(ports_keys)} for {i!r}.")
+
+        inst_port = ref.ports[p] if ia is None else ref.ports[p, ia, ib]  # type: ignore[index]
+        c.add_port(name, port=inst_port)
+    return c
+
+
+def _add_labels(
+    c: Component,
+    refs: dict[str, ComponentReference],
+    label_instance_function: LabelInstanceFunction,
+) -> Component:
+    for name, ref in refs.items():
+        label_instance_function(component=c, instance_name=name, reference=ref)
+    return c
+
+
+def _graph_roots(g: nx.DiGraph) -> list[str]:
+    return [node for node in g.nodes if g.in_degree(node) == 0]
+
+
+def _graph_connect(g: nx.DiGraph, i1: str, i2: str) -> None:
+    g.add_edge(i2, i1)
+
+
+def _two_out_of_three_none(one: Any, two: Any, three: Any) -> bool:
+    if one is None:
+        if two is None:
+            return True
+        if three is None:
+            return True
+    return two is None and three is None
+
+
+def _update_reference_by_placement(
+    refs: dict[str, ComponentReference], name: str, p: Placement
+) -> None:
+    ref = refs[name]
+    x = p.x
+    y = p.y
+    xmin = p.xmin
+    ymin = p.ymin
+    xmax = p.xmax
+    ymax = p.ymax
+    dx = p.dx
+    dy = p.dy
+    port = p.port
+    rotation = p.rotation
+    mirror = p.mirror
+    port_names = [port.name for port in ref.ports]
+
+    if rotation:
+        if isinstance(port, str):
+            ref.rotate(rotation, center=_get_anchor_point_from_name(ref, port))
+        else:
+            ref.rotate(rotation)
+
+    if mirror:
+        if mirror is True:
+            if isinstance(port, str):
+                anchor_x = _get_anchor_value_from_name(ref, port, "x")
+                assert anchor_x is not None, f"anchor_x is None for {port!r}"
+                ref.dmirror_x(x=anchor_x)
+            else:
+                ref.dcplx_trans *= kf.kdb.DCplxTrans(1, 0, True, 0, 0)
+        elif isinstance(mirror, str) and mirror in port_names:
+            x_mirror = ref.ports[mirror].x
+            ref.dmirror_x(x_mirror)
+        else:
+            try:
+                mirror = float(mirror)
+                ref.dmirror_x(x=ref.x)
+            except Exception as e:
+                raise ValueError(
+                    f"{mirror!r} should be bool | float | str in {port_names}. Got: {mirror}."
+                ) from e
+
+    if isinstance(port, str):
+        if xmin is not None or xmax is not None or ymin is not None or ymax is not None:
+            raise ValueError(
+                "Cannot combine 'port' setting with any of (xmin, xmax, ymin, ymax)."
+                f"Got:\n{port=},\n{xmin=},\n{xmax=},\n{ymin=},\n{ymax=}"
+            )
+        a = _get_anchor_point_from_name(ref, port)
+        if a is None:
+            raise ValueError(
+                f"Port {port!r} is neither a valid port on {ref.name!r} "
+                "nor a recognized anchor keyword.\n"
+                f"Valid ports: {port_names}. \n"
+                f"Valid keywords: {valid_anchor_point_keywords}.\n"
+                f"Got: {port}",
+            )
+        ref.x -= a[0]
+        ref.y -= a[1]
+
+    if not _two_out_of_three_none(x, xmin, xmax):
+        raise ValueError(
+            f"Can only set one of x, xmin, xmax. Got: {x=}, {xmin=}, {xmax=}"
+        )
+    elif isinstance(x, str):
+        i, q = x.split(",")
+        if q in valid_anchor_value_keywords:
+            _dx = _get_anchor_value_from_name(refs[i], q, "x")
+            assert _dx is not None, f"dx is None for {i!r}, {q!r}"
+            ref.x += _dx
+        else:
+            ref.x += float(refs[i].ports[q].x)
+    elif x is not None:
+        ref.x += float(x)
+    elif isinstance(xmin, str):
+        i, q = xmin.split(",")
+        if q in valid_anchor_value_keywords:
+            dxmin = _get_anchor_value_from_name(refs[i], q, "x")
+            assert dxmin is not None, f"dxmin is None for {i!r}, {q!r}"
+            ref.xmin = dxmin
+        else:
+            ref.xmin = float(refs[i].ports[q].x)
+    elif xmin is not None:
+        ref.xmin = float(xmin)
+    elif isinstance(xmax, str):
+        i, q = xmax.split(",")
+        if q in valid_anchor_value_keywords:
+            dxmax = _get_anchor_value_from_name(refs[i], q, "x")
+            assert dxmax is not None, f"dxmax is None for {i!r}, {q!r}"
+            ref.xmax = dxmax
+        else:
+            ref.xmax = float(refs[i].ports[q].x)
+    elif xmax is not None:
+        ref.xmax = float(xmax)
+
+    if not _two_out_of_three_none(y, ymin, ymax):
+        raise ValueError(
+            f"Can only set one of y, ymin, ymax. Got: {y=}, {ymin=}, {ymax=}"
+        )
+    elif isinstance(y, str):
+        i, q = y.split(",")
+        if q in valid_anchor_value_keywords:
+            _dy = _get_anchor_value_from_name(refs[i], q, "y")
+            assert _dy is not None, f"dy is None for {i!r}, {q!r}"
+            ref.y += _dy
+        else:
+            ref.y += float(refs[i].ports[q].y)
+    elif y is not None:
+        ref.y += float(y)
+    elif isinstance(ymin, str):
+        i, q = ymin.split(",")
+        if q in valid_anchor_value_keywords:
+            dymin = _get_anchor_value_from_name(refs[i], q, "y")
+            assert dymin is not None, f"dymin is None for {i!r}, {q!r}"
+            ref.ymin = dymin
+        else:
+            ref.ymin = float(refs[i].ports[q].y)
+    elif ymin is not None:
+        ref.ymin = float(ymin)
+    elif isinstance(ymax, str):
+        i, q = ymax.split(",")
+        if q in valid_anchor_value_keywords:
+            dymax = _get_anchor_value_from_name(refs[i], q, "y")
+            assert dymax is not None, f"dymax is None for {i!r}, {q!r}"
+            ref.ymax = dymax
+        else:
+            ref.ymax = float(refs[i].ports[q].y)
+    elif ymax is not None:
+        ref.ymax = float(ymax)
+
+    if dx is not None:
+        ref.x += float(dx)
+
+    if dy is not None:
+        ref.y += float(dy)
+
+
+def _get_directed_connections(
+    connections: dict[str, str],
+) -> dict[str, dict[str, tuple[str, str]]]:
+    ret: dict[str, dict[str, tuple[str, str]]] = {}
+    for ip1, ip2 in connections.items():
+        i1, p1 = ip1.split(",")
+        i2, p2 = ip2.split(",")
+        if i1 not in ret:
+            ret[i1] = {}
+        ret[i1][i2] = (p1, p2)
+    return ret
+
+
+def _split_route_link(s: str) -> tuple[str, list[str], str]:
+    error = ValueError(
+        f"Invalid instance port format: {s!r}."
+        "The format for a link instance port is 'inst,port',\n"
+        "Whereas the format for bundle routing instance ports are one of the following:\n"
+        "1. 'inst,port{i}-{j}' (enumerate port index)\n"
+        "2. 'inst{i}-{j},port' (enumerate instance index)\n"
+        "3. 'inst<{i}-{j}.{k}>,port (enumerate array instance index)"
+    )
+    warning = (
+        "Bundle format 'inst,port:{i}:{j}' (with two columns) has been "
+        "deprecated. Please use 'inst,port{i}-{j}' (with a single dash)"
+    )
+
+    def _try_int(i: str) -> int:
+        try:
+            return int(i)
+        except ValueError as e:
+            raise error from e
+
+    def _first_index(ip: str) -> tuple[str, int]:
+        p = re.sub("[0-9][0-9]*$", "", ip)
+        idx = re.sub(f"^{p}", "", ip)
+        return p, _try_int(idx)
+
+    def _second_index(ip: str) -> tuple[str, int]:
+        p = re.sub("^[0-9][0-9]*", "", ip)
+        idx = re.sub(f"{p}$", "", ip)
+        return p, _try_int(idx)
+
+    if ":" in s:
+        if s.count(":") == 2:
+            s = s.replace(":", "", 1)
+            s = s.replace(":", "-", 1)
+            warnings.warn(warning, stacklevel=3)
+        else:
+            raise error
+
+    if s.count(",") != 1:
+        raise ValueError(f"Exactly one ',' expected in a route bundle link. Got: {s!r}")
+
+    if s.count("-") > 1:
+        raise error
+    elif "-" not in s:
+        return s, [""], ""
+    else:
+        first, last = s.split("-")
+        first, j = _first_index(first)
+        last, k = _second_index(last)
+
+        if k >= j:
+            middles = [f"{i}" for i in range(j, k + 1, 1)]
+        else:
+            middles = [f"{i}" for i in range(j, k - 1, -1)]
+        return first, middles, last
+
+
+def _get_ports_from_portnames(
+    refs: dict[str, ComponentReference], first: str, middles: list[str], last: str
+) -> list[typings.Port]:
+    ports = []
+    for middle in middles:
+        ip = first + middle + last
+        i, p = ip.split(",")
+        i, ia, ib = _parse_maybe_arrayed_instance(i)
+        ref = refs[i]
+        if p not in ref.ports:
+            raise ValueError(
+                f"{p!r} not in {i!r} available ports: {[p.name for p in ref.ports]}"
+            )
+        port = ref.ports[p] if (ia is None or ib is None) else ref.ports[p, ia, ib]
+        ports.append(port)
+    return ports
 
 
 sample_pdk = """
@@ -1001,7 +1332,7 @@ routes:
     route_bot:
         links:
             yl,opt3: yr,opt2
-        routing_strategy: get_bundle_from_steps
+        routing_strategy: route_bundle
 
 
 ports:
@@ -1039,7 +1370,7 @@ routes:
     route_bot:
         links:
             yl,opt3: yr,opt2
-        routing_strategy: get_bundle_from_steps
+        routing_strategy: route_bundle
         settings:
           steps: [dx: 30, dy: -40, dx: 20]
 
@@ -1085,9 +1416,9 @@ routes:
     route_bot:
         links:
             yl,opt3: yr,opt2
-        routing_strategy: get_bundle_from_steps
+        routing_strategy: route_bundle
         settings:
-          steps: [dx: 30, dy: '${settings.dy}', dx: 20]
+          steps: [dx: 30, dy: '${settings.y}', dx: 20]
           cross_section: strip
 
 
@@ -1118,21 +1449,23 @@ instances:
     mmi1x2_sweep_pack:
        component: pack_doe
        settings:
-         component: mmi1x2
-         length_mmi: [2, 100]
-         width_mmi: [4, 10]
-       pack:
+         doe: mmi1x2
+         settings:
+             length_mmi: [2, 100]
+             width_mmi: [4, 10]
          do_permutations: True
          spacing: 100
+         function: add_fiber_array
 
     mzi_sweep:
        component: pack_doe
        settings:
-         component: mzi
-         delta_length: [10, 100]
-       pack:
+         doe: mzi
+         settings:
+            delta_length: [10, 100]
          do_permutations: True
          spacing: 100
+         function: add_fiber_array
 
 placements:
     mmi1x2_sweep_pack:
@@ -1269,7 +1602,7 @@ instances:
       component: pad
 
     mzi:
-      component: mzi_phase_shifter
+      component: mzi_phase_shifter_top_heater_metal
 
 placements:
     mzi:
@@ -1287,7 +1620,7 @@ placements:
 
 routes:
     electrical1:
-        routing_strategy: get_bundle
+        routing_strategy: route_bundle
         settings:
             separation: 20
             layer: [31, 0]
@@ -1297,7 +1630,7 @@ routes:
             mzi,e2: tr,e1
 
     electrical2:
-        routing_strategy: get_bundle
+        routing_strategy: route_bundle
         settings:
             separation: 20
             layer: [31, 0]
@@ -1362,19 +1695,396 @@ placements:
 
   mzis:
     xmin: rings,east
+"""
 
+sample_connections = """
+name: sample_connections
+
+instances:
+    wgw:
+      component: straight
+      settings:
+        length: 1
+    wgn:
+      component: straight
+      settings:
+        length: 0.5
+
+connections:
+    wgw,o1: wgn,o2
+"""
+
+sample_docstring = """
+name: sample_docstring
+
+instances:
+    mmi_bot:
+      component: mmi1x2
+      settings:
+        width_mmi: 5
+        length_mmi: 11
+    mmi_top:
+      component: mmi1x2
+      settings:
+        width_mmi: 6
+        length_mmi: 22
+
+placements:
+    mmi_top:
+        port: o1
+        x: 0
+        y: 0
+    mmi_bot:
+        port: o1
+        x: mmi_top,o2
+        y: mmi_top,o2
+        dx: 40
+        dy: -40
+routes:
+    optical:
+        links:
+            mmi_top,o3: mmi_bot,o1
+"""
+
+yaml_anchor = """
+name: yaml_anchor
+instances:
+    mmi_long:
+      component: mmi1x2
+      settings:
+        width_mmi: 4.5
+        length_mmi: 10
+    mmi_short:
+      component: mmi1x2
+      settings:
+        width_mmi: 4.5
+        length_mmi: 5
+
+placements:
+    mmi_short:
+        port: o3
+        x: 0
+        y: 0
+    mmi_long:
+        port: o1
+        x: mmi_short,east
+        y: mmi_short,north
+        dx : 10
+        dy: 10
+"""
+
+mirror_demo = """
+name: mirror_demo
+instances:
+    mmi_long:
+      component: mmi1x2
+      settings:
+        width_mmi: 4.5
+        length_mmi: 5
+placements:
+    mmi_long:
+        x: 0
+        y: 0
+        mirror: o1
+        rotation: 0
 """
 
 
+pad_array = """
+name: pad_array
+instances:
+    pad_array:
+      component: pad
+      columns: 3
+      column_pitch: 200
+
+"""
+sample_array = """
+name: sample_array
+
+instances:
+  sa1:
+    component: straight
+    settings:
+      width: 2
+    array:
+        columns: 5
+        column_pitch: 50
+        rows: 4
+        row_pitch: 10
+  s2:
+    component: straight
+
+connections:
+    s2,o2: sa1<2.3>,o1
+
+routes:
+    b1:
+        links:
+            sa1<3.0>,o2: sa1<4.0>,o1
+            sa1<3.1>,o2: sa1<4.1>,o1
+        settings:
+            cross_section: strip
+
+ports:
+    o1: s2,o1
+    o2: sa1<0.0>,o1
+"""
+sample_mirror_simple = """
+name: sample_mirror_simple
+
+instances:
+    s:
+        component: straight
+
+    b:
+        component: bend_circular
+
+placements:
+    b:
+        mirror: True
+        port: o1
+
+connections:
+    b,o1: s,o2
+
+"""
+
+sample_doe = """
+name: mask
+
+instances:
+    mmi1x2_sweep:
+       component: pack_doe
+       settings:
+         doe: mmi1x2
+         do_permutations: True
+         spacing: 100
+         settings:
+           length_mmi: [2, 100]
+           width_mmi: [4, 10]
+"""
+
+sample_2x2_connections = """
+name: connections_2x2_solution
+
+instances:
+    mmi_bottom:
+      component: mmi2x2
+      settings:
+            length_mmi: 5
+    mmi_top:
+      component: mmi2x2
+      settings:
+            length_mmi: 10
+
+placements:
+    mmi_top:
+        x: 100
+        y: 100
+
+routes:
+    optical:
+        links:
+            mmi_bottom,o4: mmi_top,o1
+            mmi_bottom,o3: mmi_top,o2
+
+        settings:
+            cross_section:
+                cross_section: strip
+
+"""
+
+yaml_anchor = """
+name: yaml_anchor
+instances:
+    mmi_long:
+      component: mmi1x2
+      settings:
+        width_mmi: 4.5
+        length_mmi: 10
+    mmi_short:
+      component: mmi1x2
+      settings:
+        width_mmi: 4.5
+        length_mmi: 5
+
+placements:
+    mmi_short:
+        port: o3
+        x: 0
+        y: 0
+    mmi_long:
+        port: o1
+        x: mmi_short,east
+        y: mmi_short,north
+        dx : 10
+        dy: 10
+"""
+
+same_placement = """
+name: yaml_anchor
+instances:
+    mzi1:
+      component: mzi
+    mzi2:
+      component: mzi
+"""
+
+port_array_electrical = """
+instances:
+  t:
+    component: pad_array
+    settings:
+      port_orientation: 270
+      columns: 10
+      auto_rename_ports: True
+  b:
+    component: pad_array
+    settings:
+      port_orientation: 90
+      columns: 10
+      auto_rename_ports: True
+
+placements:
+  t:
+    x: 500
+    y: 900
+
+routes:
+  electrical:
+    settings:
+      start_straight_length: 150
+      end_straight_length: 150
+      cross_section: metal_routing
+      allow_width_mismatch: True
+      sort_ports: True
+    links:
+      t,e10-1: b,e1-10
+"""
+
+port_array_electrical2 = """
+instances:
+  t:
+    component: pad
+    settings:
+      port_orientations:
+        - 270
+      port_orientation: null
+      port_type: electrical
+    array:
+      columns: 3
+      column_pitch: 150
+  b:
+    component: pad
+    settings:
+      port_orientations:
+        - 90
+      port_orientation: null
+      port_type: electrical
+    array:
+      columns: 3
+      column_pitch: 150
+
+placements:
+  t:
+    x: 500
+    y: 900
+
+routes:
+  electrical:
+    settings:
+      start_straight_length: 150
+      end_straight_length: 150
+      cross_section: metal_routing
+      allow_width_mismatch: True
+      sort_ports: True
+    links:
+      t<0-2.0>,e1: b<2-0.0>,e1
+"""
+
+port_array_optical = """
+instances:
+  a:
+    component: nxn
+  b:
+    component: nxn
+
+placements:
+  b:
+    x: 50
+    y: 50
+    rotation: 180
+    # mirror: True
+    mirror: False
+
+routes:
+  optical:
+    settings:
+        cross_section: strip
+    links:
+      a,o3-4: b,o4-3
+"""
+
+mirror = """
+instances:
+  a:
+    component: bend_circular
+
+placements:
+  a:
+    # rotation: 180
+    mirror: True
+    # mirror: False
+"""
+
+sample_array_connect_error = """
+name: sample_array_connect_error
+
+instances:
+  b1:
+    component: bend_euler
+    settings:
+      radius: 20
+  s1:
+    component: straight
+    settings:
+      length: 10
+    array:
+      columns: 3
+      rows: 1
+      column_pitch: 100.0
+      row_pitch: 0.0
+connections:
+  #s1<2.0>,o2: b1,o1
+  b1,o1: s2<2.0>,o2
+"""
+
+
+sample_width_missmatch = """
+name: sample_width_missmatch
+
+instances:
+  b1:
+    component: bend_euler
+    settings:
+      width: 2
+  s1:
+    component: straight
+    settings:
+      length: 10
+connections:
+  b1,o1: s1,o2
+"""
+
 if __name__ == "__main__":
-    import gdsfactory as gf
-
+    c = from_yaml(sample_array)
+    # c = from_yaml(sample_width_missmatch)
+    # c = from_yaml(sample_yaml_xmin)
     # c = from_yaml(sample_doe_function)
-    c = from_yaml(sample_mmis)
-    n = c.get_netlist()
-
-    gf.clear_cache()
-    yaml_str = OmegaConf.to_yaml(n, sort_keys=True)
-    c2 = from_yaml(yaml_str)
-    n2 = c2.get_netlist()
-    c2.show()
+    # n = c.get_netlist()
+    c.show()
+    # yaml_str = OmegaConf.to_yaml(n, sort_keys=True)
+    # c2 = from_yaml(yaml_str)
+    # n2 = c2.get_netlist()
+    # c2.show()

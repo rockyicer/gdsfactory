@@ -5,29 +5,27 @@ Adapted from PHIDL https://github.com/amccaugh/phidl/ by Adam McCaughan
 
 from __future__ import annotations
 
-import warnings
-from collections import Counter
-from typing import Any
+import os
+import pathlib
+from collections.abc import Sequence
+from typing import Any, Protocol, cast
 
 import numpy as np
-from pydantic import validate_call
+import numpy.typing as npt
 
 import gdsfactory as gf
-from gdsfactory.component import Component, valid_anchors
-from gdsfactory.name import get_name_short
+from gdsfactory.component import Component
 from gdsfactory.snap import snap_to_grid
-from gdsfactory.typings import Anchor, ComponentSpec, Float2, Number
-
-name_counters = Counter()
+from gdsfactory.typings import Anchor, ComponentSpec, Float2, Size
 
 
 def _pack_single_bin(
-    rect_dict: dict[int, tuple[Number, Number]],
-    aspect_ratio: tuple[Number, Number],
-    max_size: tuple[float, float],
+    rect_dict: dict[int, tuple[float, float]],
+    aspect_ratio: tuple[float, float],
+    max_size: Size,
     sort_by_area: bool,
     density: float,
-) -> tuple[dict[int, tuple[Number, Number, Number, Number]], dict[Any, Any]]:
+) -> tuple[dict[int, tuple[float, float, float, float]], dict[Any, Any]]:
     """Packs a dict of rectangles {id:(w,h)} and tries to.
 
     Pack it into a bin as small as possible with aspect ratio `aspect_ratio`
@@ -92,16 +90,19 @@ def _pack_single_bin(
     return packed_rect_dict, unpacked_rect_dict
 
 
-@validate_call
+class TextFunction(Protocol):
+    def __call__(self, text: str) -> Component: ...
+
+
 def pack(
-    component_list: list[ComponentSpec],
+    component_list: Sequence[ComponentSpec],
     spacing: float = 10.0,
     aspect_ratio: Float2 = (1.0, 1.0),
     max_size: tuple[float | None, float | None] = (None, None),
     sort_by_area: bool = True,
     density: float = 1.1,
     precision: float = 1e-2,
-    text: ComponentSpec | None = None,
+    text: TextFunction | None = None,
     text_prefix: str = "",
     text_mirror: bool = False,
     text_rotation: int = 0,
@@ -112,7 +113,8 @@ def pack(
     h_mirror: bool = False,
     v_mirror: bool = False,
     add_ports_prefix: bool = True,
-    name_ports_with_component_name: bool = True,
+    add_ports_suffix: bool = False,
+    csvpath: str | None = None,
 ) -> list[Component]:
     """Pack a list of components into as few Components as possible.
 
@@ -135,8 +137,9 @@ def pack(
         rotation: optional component rotation in degrees.
         h_mirror: horizontal mirror in y axis (x, 1) (1, 0). This is the most common.
         v_mirror: vertical mirror using x axis (1, y) (0, y).
-        add_ports_prefix: adds prefix to port names. False adds suffix.
-        name_ports_with_component_name: if True uses component.name as unique id. False uses index.
+        add_ports_prefix: adds port names with prefix.
+        add_ports_suffix: adds port names with suffix.
+        csvpath: optional path to save the packed component list as a CSV file.
 
     .. plot::
         :include-source:
@@ -159,6 +162,18 @@ def pack(
         c[0].plot()
 
     """
+    import pandas as pd
+
+    if csvpath:
+        if os.path.exists(csvpath):
+            df = pd.read_csv(csvpath)
+        else:
+            df = pd.DataFrame(columns=["name", "x", "y", "w", "h"])
+    else:
+        df = pd.DataFrame(columns=["name", "x", "y", "w", "h"])
+
+    df.set_index("name", inplace=True)
+
     if density < 1.01:
         raise ValueError(
             "pack() `density` argument is too small. "
@@ -166,170 +181,157 @@ def pack(
         )
 
     # Sanitize max_size variable
-    max_size = [np.inf if v is None else v for v in max_size]
-    max_size = np.asarray(max_size, dtype=np.float64)  # In case it's integers
-    max_size = max_size / precision
+    max_size_filtered = tuple(np.inf if v is None else v for v in max_size)
+    max_size_array: npt.NDArray[np.floating[Any]] = np.asarray(
+        max_size_filtered, dtype=np.float64
+    )  # In case it's integers
+    max_size_array = max_size_array / precision
+    max_size_tuple = cast(tuple[float, float], tuple(max_size_array))
 
-    component_list = [gf.get_component(component) for component in component_list]
+    components = [gf.get_component(component) for component in component_list]
 
     # Convert Components to rectangles
-    rect_dict = {}
-    for n, D in enumerate(component_list):
-        if not isinstance(D, Component):
-            raise ValueError(f"pack() failed because {D} is not a Component")
-        w, h = (D.size + spacing) / precision
-        w, h = int(w), int(h)
-        if (w > max_size[0]) or (h > max_size[1]):
+    rect_dict: dict[int, tuple[float, float]] = {}
+    for n, D in enumerate(components):
+        size = np.array([D.xsize, D.ysize])
+        w: float = int((size[0] + spacing) / precision)
+        h: float = int((size[1] + spacing) / precision)
+        if w > max_size_tuple[0]:
             raise ValueError(
-                f"pack() failed because Component {D.name!r} has x or y "
-                "dimension larger than `max_size` and cannot be packed.\n"
-                f"size = {w*precision, h*precision}, max_size = {max_size*precision}"
+                f"pack() failed because Component {D.name!r} has x dimension "
+                "larger than `max_size` and cannot be packed.\n"
+                f"xsize = {size[0]}, max_xsize = {int(precision * w)}"
+            )
+        elif h > max_size_tuple[1]:
+            raise ValueError(
+                f"pack() failed because Component {D.name!r} has y dimension "
+                "larger than `max_size` and cannot be packed.\n"
+                f"ysize = {size[1]}, max_ysize = {int(precision * h)}"
             )
         rect_dict[n] = (w, h)
 
-    packed_list = []
+    packed_list: list[dict[int, tuple[float, float, float, float]]] = []
     while rect_dict:
         (packed_rect_dict, rect_dict) = _pack_single_bin(
             rect_dict,
             aspect_ratio=aspect_ratio,
-            max_size=max_size,
+            max_size=max_size_tuple,
             sort_by_area=sort_by_area,
             density=density,
         )
         packed_list.append(packed_rect_dict)
 
-    components_packed_list = []
-    name_counter = Counter()
+    components_packed_list: list[Component] = []
     index = 0
-    for i, rect_dict in enumerate(packed_list):
-        name = get_name_short(f"{name_prefix or 'pack'}_{i}")
-        packed = Component(name)
-        for n, rect in rect_dict.items():
+    for rect_dict_ in packed_list:
+        packed = Component()
+        for i, (n, rect) in enumerate(rect_dict_.items()):
+            component = components[n]
             x, y, w, h = rect
+            name = f"{component.name}_{i}"
+
+            if name in df.index:
+                row = df.loc[name]
+                x, y, w, h = row["x"], row["y"], row["w"], row["h"]
+            else:
+                # fallback values if name is not found
+                x, y, w, h = rect
+                df.loc[name] = [x, y, w, h]
+
             xcenter = x + w / 2 + spacing / 2
             ycenter = y + h / 2 + spacing / 2
-            component = component_list[n]
-            d = component.ref(rotation=rotation, h_mirror=h_mirror, v_mirror=v_mirror)
-            packed.add(d)
-
-            d.center = snap_to_grid((xcenter * precision, ycenter * precision))
-            component_id = component.name if name_ports_with_component_name else index
-            name_counter[component_id] += 1
-
-            if name_counter[component_id] > 1:
-                component_id = f"{component_id}${name_counter[component_id]}"
-
-            info = component.info
-            info["parent"] = component.name
+            d = packed << component
+            if rotation:
+                d.rotate(rotation)
+            if h_mirror:
+                d.mirror_x()
+            if v_mirror:
+                d.mirror_y()
+            d.center = cast(
+                tuple[float, float],
+                tuple(snap_to_grid((xcenter * precision, ycenter * precision))),
+            )
             if add_ports_prefix:
-                packed.add_ports(d.ports, prefix=f"{component_id}-", info=info)
+                packed.add_ports(d.ports, prefix=f"{index}_")
+            elif add_ports_suffix:
+                packed.add_ports(d.ports, suffix=f"_{index}")
             else:
-                packed.add_ports(d.ports, suffix=f"-{component_id}", info=info)
+                try:
+                    packed.add_ports(d.ports)
+                except ValueError:
+                    packed.add_ports(d.ports, suffix=f"_{index}")
 
             index += 1
+
             if text:
                 for text_offset, text_anchor in zip(text_offsets, text_anchors):
-                    if text_anchor not in valid_anchors:
-                        raise ValueError(
-                            f"Invalid anchor {text_anchor} not in {valid_anchors}"
-                        )
                     label = packed << text(f"{text_prefix}{index}")
                     if text_mirror:
-                        label.mirror()
+                        label.dmirror()
                     if text_rotation:
                         label.rotate(text_rotation)
                     label.move(
-                        np.array(text_offset) + getattr(d.size_info, text_anchor)
+                        np.array(text_offset) + getattr(d.dsize_info, text_anchor)
                     )
 
         components_packed_list.append(packed)
 
-    if len(components_packed_list) > 1:
-        groups = len(components_packed_list)
-        warnings.warn(f"unable to pack in one component, creating {groups} components")
+    if csvpath:
+        dirpath = pathlib.Path(csvpath).parent
+        dirpath.mkdir(parents=True, exist_ok=True)
+        df.to_csv(csvpath, index=True)
 
     return components_packed_list
 
 
-def test_pack() -> None:
-    """Test packing function."""
-    component_list = [
-        gf.components.ellipse(radii=tuple(np.random.rand(2) * n + 2)) for n in range(2)
-    ]
-    component_list += [
-        gf.components.rectangle(size=tuple(np.random.rand(2) * n + 2)) for n in range(2)
-    ]
-
-    components_packed_list = pack(
-        component_list,  # Must be a list or tuple of Components
-        spacing=1.25,  # Minimum distance between adjacent shapes
-        aspect_ratio=(2, 1),  # (width, height) ratio of the rectangular bin
-        max_size=(None, None),  # Limits the size into which the shapes will be packed
-        density=1.05,  # Values closer to 1 pack tighter but require more computation
-        sort_by_area=True,  # Pre-sorts the shapes by area
-    )
-    c = components_packed_list[0]  # Only one bin was created, so we plot that
-    assert len(c.get_dependencies()) == 4
-    assert c
-
-
-def test_pack_with_settings() -> None:
-    """Test packing function with custom settings."""
-    component_list = [
-        gf.components.rectangle(size=(i, i), port_type=None) for i in range(1, 10)
-    ]
-    component_list += [
-        gf.components.rectangle(size=(i, i), port_type=None) for i in range(1, 10)
-    ]
-
-    components_packed_list = pack(
-        component_list,  # Must be a list or tuple of Components
-        spacing=1.25,  # Minimum distance between adjacent shapes
-        aspect_ratio=(2, 1),  # (width, height) ratio of the rectangular bin
-        # max_size=(None, None),  # Limits the size into which the shapes will be packed
-        max_size=(100, 100),  # Limits the size into which the shapes will be packed
-        density=1.05,  # Values closer to 1 pack tighter but require more computation
-        sort_by_area=True,  # Pre-sorts the shapes by area
-        precision=1e-3,
-    )
-    assert components_packed_list[0]
+@gf.cell
+def ellipse(number: int = 0) -> Component:
+    """Example component to pack."""
+    n = number
+    radii = (np.random.rand() * n + 2, np.random.rand() * n + 2)
+    return gf.components.ellipse(radii=radii)
 
 
 if __name__ == "__main__":
-    # # test_pack()
+    # test_pack()
     component_list = [
-        gf.components.ellipse(radii=tuple(np.random.rand(2) * n + 2)) for n in range(2)
+        gf.components.ellipse(
+            radii=(np.random.rand() * n + 2, np.random.rand() * n + 2)
+        )
+        for n in range(10)
     ]
     component_list += [
-        gf.components.rectangle(size=tuple(np.random.rand(2) * n + 2), name=f"r{n}")
-        for n in range(2)
+        gf.components.rectangle(
+            size=(np.random.rand() * n + 2, np.random.rand() * n + 2)
+        )
+        for n in range(10)
     ]
-    # component_list = [gf.c.straight, gf.c.straight]
 
-    # components_packed_list = pack(
-    #     component_list,  # Must be a list or tuple of Components
-    #     spacing=1.25,  # Minimum distance between adjacent shapes
-    #     aspect_ratio=(2, 1),  # (width, height) ratio of the rectangular bin
-    #     max_size=(None, None),  # Limits the size into which the shapes will be packed
-    #     density=1.05,  # Values closer to 1 pack tighter but require more computation
-    #     sort_by_area=True,  # Pre-sorts the shapes by area
-    # )
-    # c = components_packed_list[0]  # Only one bin was created, so we plot that
+    component_list = [ellipse(i) for i in range(10)]
 
-    from functools import partial
-
-    p = pack(
-        [gf.components.straight(length=i) for i in [1, 1]],
-        spacing=20.0,
-        max_size=(100, 100),
-        text=partial(gf.components.text, justify="center"),
-        text_prefix="R",
-        name_prefix="demo",
-        text_anchors=["nc"],
-        text_offsets=[(-10, 0)],
-        text_mirror=True,
-        v_mirror=True,
+    components_packed_list = pack(
+        component_list,  # Must be a list or tuple of Components
+        spacing=1.5,  # Minimum distance between adjacent shapes
+        aspect_ratio=(2, 1),  # (width, height) ratio of the rectangular bin
+        # max_size=(None, None),  # Limits the size into which the shapes will be packed
+        max_size=(30, 30),  # Limits the size into which the shapes will be packed
+        density=1.05,  # Values closer to 1 pack tighter but require more computation
+        sort_by_area=True,  # Pre-sorts the shapes by area
+        csvpath="locations3.csv",  # Optional path to save the packed component positions as a CSV file
     )
+    c = components_packed_list[0]  # Only one bin was created, so we plot that
+
+    # p = pack(
+    #     [gf.components.straight(length=i) for i in [1, 1]],
+    #     spacing=20.0,
+    #     max_size=(100, 100),
+    #     text=partial(gf.components.text, justify="center"),
+    #     text_prefix="R",
+    #     name_prefix="demo",
+    #     text_anchors=["nc"],
+    #     text_offsets=[(-10, 0)],
+    #     text_mirror=True,
+    #     v_mirror=True,
+    # )
     # c = p[0]
-    c = pack(p)[0]
-    c.show(show_ports=True)
+    c.show()

@@ -1,17 +1,9 @@
-function: terminator
 info: {}
-module: gdsfactory.components.terminator
-name: terminator
+name: terminator_gdsfactorypc_a505b160
 settings:
-  cross_section_input:
-    function: cross_section
-    module: gdsfactory.cross_section
-    settings:
-      radius: 10
-      radius_min: 5
-  cross_section_tip: null
+  cross_section_input: strip
   doping_layers:
   - NPP
-  doping_offset: 1.0
+  doping_offset: 1
   length: 50
   tapered_width: 0.2

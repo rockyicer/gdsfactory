@@ -7,82 +7,86 @@ requires = ["flit_core >=3.2,<4"]
 [project]
 authors = [{name = "gdsfactory community", email = "contact@gdsfactory.com"}]
 classifiers = [
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Operating System :: OS Independent"
 ]
 dependencies = [
-  "flatdict",
-  "gdstk>=0.9.49,<0.10",
   "jinja2<4",
   "loguru<1",
   "matplotlib<4",
-  "numpy<2",
-  "omegaconf<3",
+  "numpy",
   "orjson<4",
-  "pandas<3",
-  "pydantic>=2,<2.8",
+  "pandas",
+  "pydantic>=2",
   "pydantic-settings<3",
   "pydantic-extra-types<3",
   "pyyaml",
   "qrcode",
   "rectpack<1",
-  "rich<14",
+  "rich<15",
   "scipy<2",
   "shapely<3",
-  "toolz<1",
+  "toolz<2",
   "types-PyYAML",
   "typer<1",
-  "watchdog<5",
-  "kfactory[git,ipy]>=0.9.1,<0.13",
+  "kfactory[ipy]>=1.6,<1.7",
+  "watchdog<7",
   "freetype-py",
   "mapbox_earcut",
   "networkx",
-  "pyglet<2",
   "scikit-image",
-  "trimesh>=4,<4.4",
-  "ipycytoscape",
-  "ipyevents",
+  "trimesh>=4.4.1",
   "ipykernel",
-  "ipympl",
-  "ipytree",
-  "ipywidgets"
+  "attrs",
+  "graphviz",
+  "pyglet<3",
+  "typing-extensions"
 ]
 description = "python library to generate GDS layouts"
 keywords = ["eda", "photonics", "python"]
 license = {file = "LICENSE"}
 name = "gdsfactory"
 readme = "README.md"
-requires-python = ">=3.10"
-version = "7.26.1"
+requires-python = ">=3.11,<3.14"
+version = "9.5.10"
 
 [project.optional-dependencies]
-cad = [
-  "kweb>=1.1.9,<2.1"
-]
+cad = ["kweb>=1.1.9,<2.1"]
 dev = [
+  "codeflash",
   "ipykernel",
+  "jupyterlab",
   "jsondiff",
+  "jsonschema",
   "pre-commit",
   "pylsp-mypy",
   "pytest",
   "pytest-cov",
   "pytest_regressions",
   "types-PyYAML",
-  "types-cachetools"
+  "types-cachetools",
+  "pytest-github-actions-annotate-failures",
+  "pytest-randomly",
+  "pytest-xdist",
+  "ty"
 ]
 docs = [
   "autodoc_pydantic>=2.0.1,<3",
   "jupytext",
   "jupyter-book>=0.15.1,<1.1",
   "plotly",
-  "Sphinx==7.3.7"
+  "Sphinx==7.4.7"
 ]
 full = [
-  "gplugins[devsim,femwell,gmsh,meow,sax,schematic,tidy3d,vlsir]"
+  "gplugins[devsim,femwell,gmsh,meow,sax,schematic,tidy3d]~=1.1",
+  "scikit-rf",
+  "omegaconf",
+  "autograd"
 ]
 maintainer = [
-  "ruff",
+  "ruff>=0.8.3",
   "doc8",
   "xdoctest",
   "mypy",
@@ -94,11 +98,27 @@ maintainer = [
 [project.scripts]
 gf = "gdsfactory.cli:app"
 
+[tool.codeflash]
+benchmarks-root = ""
+formatter-cmds = ["ruff check --exit-zero --fix $file", "ruff format $file"]
+ignore-paths = []
+# All paths are relative to this pyproject.toml's directory.
+module-root = "gdsfactory"
+test-framework = "pytest"
+tests-root = "tests"
+
 [tool.codespell]
 ignore-words-list = "te, te/tm, te, ba, fpr, fpr_spacing, ro, nd, donot, schem"
 
 [tool.mypy]
-python_version = "3.10"
+disable_error_code = ["import-untyped", "has-type", "no-untyped-call"]
+exclude = [
+  "gdsfactory/export/to_svg.py",
+  "test-data-gds/.",
+  "gdsfactory/samples/demo/layers_sky130.py",
+  "notebooks/*"
+]
+python_version = "3.11"
 strict = true
 
 [tool.pylsp-mypy]
@@ -111,8 +131,7 @@ reportUnusedExpression = false
 
 [tool.pytest.ini_options]
 # addopts = --tb=no
-addopts = '--tb=short --ignore=gdsfactory/schematic_editor.py --ignore=gdsfactory/klayout_tech.py --ignore=gdsfactory/geometry/maskprep_flat.py --ignore=gdsfactory/fill_klayout.py'
-datadir = "test-data-regression"
+addopts = '--tb=short --ignore=gdsfactory/schematic_editor.py --ignore=gdsfactory/klayout_tech.py --ignore=gdsfactory/geometry/maskprep_flat.py --ignore=gdsfactory/fill_klayout.py --ignore=tests/test_samples.py'
 norecursedirs = [
   "gdsfactory/geometry",
   "gdsfactory/plugins",
@@ -124,34 +143,53 @@ norecursedirs = [
   "docs"
 ]
 python_files = ["gdsfactory/*.py", "tests/*.py"]
-testpaths = ["gdsfactory/", "tests"]
+testpaths = ["gdsfactory", "tests"]
 
 [tool.ruff]
-extend-exclude = ['docs/notebooks/']
+extend-exclude = ['docs/notebooks/', 'notebooks/']
 fix = true
+
+[tool.ruff.lint]
 ignore = [
-  "E501",  # line too long, handled by black
   "B008",  # do not perform function calls in argument defaults
-  "C901",  # too complex
+  "B904",
   "B905",  # `zip()` without an explicit `strict=` parameter
   "C408",  # C408 Unnecessary `dict` call (rewrite as a literal)
-  "B904",
-  "B028"  # stacklevel
+  "C901",  # too complex
+  "D100",  # public module docstrings
+  "D101",  # public class docstrings
+  "D102",  # public method docstrings
+  "D103",  # public function docstrings
+  "D104",  # public package docstrings
+  "E501",  # line too long, handled by black
+  "RUF005",  # Consider {expression} instead of concatenation
+  "ANN401",  # typing.Any is not allowed
+  "RUF015",  # Using next() instead of [0]
+  "UP037"  # Remove quotes from type annotations
 ]
 select = [
+  "B",  # flake8-bugbear
+  "C",  # flake8-comprehensions
+  "D",  # pydocstyle
   "E",  # pycodestyle errors
-  "W",  # pycodestyle warnings
   "F",  # pyflakes
   "I",  # isort
-  "C",  # flake8-comprehensions
-  "B",  # flake8-bugbear
   "T10",  # flake8-debugger
-  "UP"
+  "UP",  # pyupgrade
+  "W",  # pycodestyle warnings
+  "PERF",  # performance improvements
+  "RUF",  # ruff
+  "ANN"  # flake8-annotations
 ]
 
-[tool.ruff.per-file-ignores]
-"docs/notebooks/*.py" = ["F821", 'E402', 'F405', 'F403']
+[tool.ruff.lint.per-file-ignores]
+"gdsfactory/samples/*.py" = ["N999"]
 "gdsfactory/typings.py" = ["UP035"]
+"notebooks/*.ipynb" = ["F821", 'E402', 'F405', 'F403', "D103"]
+"tests/*.py" = ["D103"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.setuptools.package-data]
 mypkg = [
@@ -211,7 +249,7 @@ message_template = "Bump to {new_version}"
 tag_template = "v{new_version}"
 
 [tool.tbump.version]
-current = "7.26.1"
+current = "9.5.10"
 regex = '''
   (?P<major>\d+)
   \.

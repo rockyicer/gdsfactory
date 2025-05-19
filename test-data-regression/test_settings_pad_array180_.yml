@@ -1,14 +1,12 @@
-function: pad_array
-info:
-  xsize: 100.0
-  ysize: 100.0
-module: gdsfactory.components.pad
-name: pad_array_bc0d660e
+info: {}
+name: pad_array_gdsfactorypco_dc726c53
 settings:
+  auto_rename_ports: false
+  centered_ports: false
+  column_pitch: 150
   columns: 1
-  orientation: 180
+  layer: MTOP
   pad: pad
+  port_orientation: 180
+  row_pitch: 150
   rows: 3
-  spacing:
-  - 150.0
-  - 150.0

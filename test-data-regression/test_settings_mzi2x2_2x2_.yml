@@ -1,33 +1,22 @@
-function: mzi
 info: {}
-module: gdsfactory.components.mzi
-name: mzi_d46c281f
+name: mzi_gdsfactorypcomponen_be72d796
 settings:
-  add_electrical_ports_bot: true
   add_optical_ports_arms: false
-  bend:
-    function: bend_euler
-  combiner:
-    function: mmi2x2
-  cross_section: xs_sc
-  cross_section_x_bot: null
-  cross_section_x_top: null
-  delta_length: 10.0
-  extend_ports_straight_x: null
-  length_x: 0.1
-  length_y: 2.0
+  auto_rename_ports: true
+  bend: bend_euler
+  combiner: mmi2x2
+  cross_section: strip
+  delta_length: 10
+  length_y: 2
   min_length: 0.01
   mirror_bot: false
   nbends: 2
+  port1: o1
+  port2: o2
   port_e0_combiner: o4
   port_e0_splitter: o4
   port_e1_combiner: o3
   port_e1_splitter: o3
-  splitter:
-    function: mmi2x2
-  straight:
-    function: straight
-  straight_x_bot: null
-  straight_x_top: null
-  straight_y: null
+  splitter: mmi2x2
+  straight: straight
   with_splitter: true

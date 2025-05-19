@@ -1,407 +1,507 @@
-"""All functions return a Component so you can easily pipe or compose them.
-
-There are two types of functions:
-
-- decorators: return the original component
-- containers: return a new component that contains the old one.
-
-"""
-
 from __future__ import annotations
 
-import json
 import warnings
-from collections.abc import Mapping
-from functools import lru_cache, partial
-from typing import Any
+from collections.abc import Callable, Sequence
+from functools import partial
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
+import kfactory as kf
 import numpy as np
-from omegaconf import OmegaConf
-from pydantic import validate_call
+import numpy.typing as npt
+from numpy import cos, float64, sin
 
 import gdsfactory as gf
-from gdsfactory import ComponentReference
-from gdsfactory.cell import cell_with_child, container
-from gdsfactory.components.straight import straight
-from gdsfactory.components.text_rectangular import text_rectangular_multi_layer
-from gdsfactory.port import auto_rename_ports
-from gdsfactory.typings import (
-    Anchor,
-    Axis,
-    Component,
-    ComponentSpec,
-    Float2,
-    LayerSpec,
-    Strs,
-)
 
-cache = lru_cache(maxsize=None)
+if TYPE_CHECKING:
+    from gdsfactory.component import Component, ComponentReference
+    from gdsfactory.typings import LayerSpec, LayerSpecs
+
+RAD2DEG = 180.0 / np.pi
+DEG2RAD = 1 / RAD2DEG
 
 
-def _get_component_in_container(
-    component: ComponentSpec, *args, **kwargs
-) -> tuple[Component, Component, ComponentReference]:
-    """Returns a new Component object that contains a reference to the original Component object.
-    This allows effectively _modifying_ a Component after it has been created.
-
-    Returns:
-        A tuple containing the original Component object, the new Component object, and a reference to the original Component object.
-    """
-    from gdsfactory.pdk import get_component
-
-    component = get_component(component, *args, **kwargs)
-    component_new = Component()
-    component_new.component = component
-    ref = component_new.add_ref(component)
-    return component, component_new, ref
-
-
-def add_port(component: Component, **kwargs) -> Component:
-    """Return Component with a new port."""
-    component.add_port(**kwargs)
-    return component
-
-
-@cell_with_child
-def add_text(
-    component: ComponentSpec,
-    text: str = "",
-    text_offset: Float2 = (0, 0),
-    text_anchor: Anchor = "cc",
-    text_factory: ComponentSpec = text_rectangular_multi_layer,
-) -> Component:
-    """Return component inside a new component with text geometry.
-
-    Args:
-        component: component spec.
-        text: text string.
-        text_offset: relative to component anchor. Defaults to center (cc).
-        text_anchor: relative to component (ce cw nc ne nw sc se sw center cc).
-        text_factory: function to add text labels.
-
-    """
-    component, component_new, ref = _get_component_in_container(component)
-
-    t = component_new << text_factory(text)
-    t.move(np.array(text_offset) + getattr(ref.size_info, text_anchor))
-
-    component_new.add_ports(ref.ports)
-    component_new.copy_child_info(component)
-    return component_new
-
-
-def add_texts(
-    components: list[ComponentSpec],
-    prefix: str = "",
-    index0: int = 0,
-    **kwargs,
-) -> list[Component]:
-    """Return a list of Component with text labels.
-
-    Args:
-        components: list of component specs.
-        prefix: Optional prefix for the labels.
-        index0: defaults to 0 (0, for first component, 1 for second ...).
-
-    keyword Args:
-        text_offset: relative to component size info anchor. Defaults to center.
-        text_anchor: relative to component (ce cw nc ne nw sc se sw center cc).
-        text_factory: function to add text labels.
-
-    """
-    return [
-        add_text(component, text=f"{prefix}{i + index0}", **kwargs)
-        for i, component in enumerate(components)
-    ]
-
-
-def add_info(component, info: dict[str, Any]) -> Component:
-    """Return Component with info added."""
-    component.info.update(info)
-    return component
-
-
-@cell_with_child
-def rotate(
-    component: ComponentSpec, angle: float = 90, recenter: bool = False
-) -> Component:
-    """Return rotated component inside a new component.
-
-    Most times you just need to place a reference and rotate it.
-    This rotate function just encapsulates the rotated reference into a new component.
-
-    Args:
-        component: spec.
-        angle: to rotate in degrees.
-        recenter: recenter component after rotating.
-
-    """
-    component, component_new, ref = _get_component_in_container(component)
-
-    origin_offset = ref.origin - np.array((ref.xmin, ref.ymin))
-
-    ref.rotate(angle)
-
-    if recenter:
-        ref.move(
-            origin=ref.center,
-            destination=np.array((ref.xsize / 2, ref.ysize / 2)) - origin_offset,
-        )
-
-    component_new.add_ports(ref.ports)
-    component_new.copy_child_info(component)
-    return component_new
-
-
-rotate90 = partial(rotate, angle=90)
-rotate90n = partial(rotate, angle=-90)
-rotate180 = partial(rotate, angle=180)
-
-
-@cell_with_child
-def mirror(
-    component: ComponentSpec, p1: Float2 = (0, 1), p2: Float2 = (0, 0)
-) -> Component:
-    """Return new Component with a mirrored reference.
-
-    Args:
-        component: component spec.
-        p1: first point to define mirror axis.
-        p2: second point to define mirror axis.
-
-    """
-    component, component_new, ref = _get_component_in_container(component)
-    ref.mirror(p1=p1, p2=p2)
-    component_new.add_ports(ref.ports)
-    component_new.copy_child_info(component)
-    return component_new
-
-
-@cell_with_child
-def move(
-    component: Component,
-    origin=(0, 0),
-    destination=None,
-    axis: Axis | None = None,
-) -> Component:
-    """Return new Component with a moved reference to the original component.
-
-    Args:
-        component: to move.
-        origin: of component.
-        destination: Optional x, y.
-        axis: x or y axis.
-    """
-    component, component_new, ref = _get_component_in_container(component)
-    ref.move(origin=origin, destination=destination, axis=axis)
-    component_new.add_ports(ref.ports)
-    component_new.copy_child_info(component)
-    return component_new
-
-
-@cell_with_child
-def transformed(ref: ComponentReference) -> Component:
-    """Returns flattened cell with reference transformations applied.
-
-    Args:
-        ref: the reference to flatten into a new cell.
-
-    """
-    from gdsfactory.component import copy_reference
-
-    c = Component()
-    ref = copy_reference(ref)
-    c.add(ref)
-    c.add_ports(ref.ports)
-    c = c.flatten()
-    c.copy_child_info(ref.ref_cell)
-    c.info["transformed_cell"] = ref.ref_cell.name
-    return c
-
-
-def move_port_to_zero(component: Component, port_name: str = "o1"):
+def move_port_to_zero(
+    component: Component, port_name: str = "o1", mirror: bool = False
+) -> gf.Component:
     """Return a container that contains a reference to the original component.
 
     The new component has port_name in (0, 0).
 
+    Args:
+        component: to move the port to (0, 0).
+        port_name: to move to (0, 0).
+        mirror: if True, mirrors the component.
     """
-    if port_name not in component.ports:
-        raise ValueError(
-            f"port_name = {port_name!r} not in {list(component.ports.keys())}"
-        )
-    return move(component, -component.ports[port_name].center)
+    port_names = [p.name for p in component.ports]
+    if port_name not in port_names:
+        raise ValueError(f"port_name = {port_name!r} not in {port_names}")
+
+    c = gf.Component()
+    ref = c << component
+    if mirror:
+        ref.dmirror()
+
+    movement = np.array(ref.ports[port_name].center)
+    ref.move(tuple(-movement))
+    c.add_ports(ref.ports)
+    c.copy_child_info(component)
+    return c
 
 
-def update_info(component: Component, **kwargs) -> Component:
-    """Return Component with updated info."""
-    component.info.update(**kwargs)
-    return component
-
-
-@validate_call
-def add_settings_label(
-    component: ComponentSpec = straight,
-    layer_label: LayerSpec = "TEXT",
-    settings: Strs | None = None,
-    ignore: Strs | None = ("decorator",),
-    with_yaml_format: bool = True,
-) -> Component:
-    """Add a settings label to a component. Use it as a decorator.
+def get_layers(component: Component) -> list[tuple[int, int]]:
+    """Returns the layers of a component.
 
     Args:
-        component: spec.
-        layer_label: for label.
-        settings: list of settings to include. if None, adds all settings.
-        ignore: list of settings to ignore.
-        with_yaml_format: if True, uses yaml format, otherwise json.
-
+        component: to get the layers from.
     """
-    from gdsfactory.pdk import get_component
-
-    component = get_component(component)
-
-    ignore = ignore or []
-    settings = settings or dict(component.settings).keys()
-    settings = set(settings) - set(ignore)
-
-    d = dict(component.settings)
-    d = {setting: d[setting] for setting in settings}
-    text = OmegaConf.to_yaml(d) if with_yaml_format else json.dumps(d)
-    component.add_label(text=text, layer=layer_label)
-    return component
+    return [
+        (info.layer, info.datatype)
+        for info in component.kcl.layer_infos()
+        if not component.bbox(component.kcl.layer(info)).empty()
+    ]
 
 
-def add_marker_layer(
-    component: ComponentSpec,
-    marker_layer: LayerSpec,
-    *,
-    marker_label: str | None = None,
-    layers_to_mark: list[LayerSpec] | None = None,
-    flatten: bool = False,
+def extract(
+    component: Component,
+    layers: LayerSpecs,
+    recursive: bool = True,
 ) -> Component:
-    """Adds a marker layer from the convex hull of the input component.
-    Used as a decorator for `@gf.cell(decorator=partial(add_marker_layer, marker_layer=...)))`
-    or as a decorator `c = gf.components.straight(decorator=partial(add_marker_layer, marker_layer=...))`
+    """Extracts a list of layers and adds them to a new Component.
 
     Args:
-        marker_layer: The marker layer.
-        marker_label: An optional text label to add to the marker layer.
-        layers_to_mark: Layers to use from component before taking convex hull. Defaults to all.
-        flatten: Whether to flatten the component. Should be done only for elementary components.
+        component: to extract the layers from.
+        layers: list of layers to extract.
+        recursive: if True, extracts the shapes recursively.
+    """
+    from gdsfactory.pdk import get_layer_tuple
+
+    c = gf.Component()
+
+    layer_tuples = [get_layer_tuple(layer) for layer in layers]
+    component_layers = get_layers(component)
+
+    for layer_tuple in layer_tuples:
+        if layer_tuple not in component_layers:
+            warnings.warn(
+                f"Layer {layer_tuple} not found in component {component.name!r} layers. {component_layers}",
+                stacklevel=3,
+            )
+
+    for layer_tuple in component_layers:
+        if layer_tuple in layer_tuples:
+            layer_index = c.kcl.layer(*layer_tuple)
+            if recursive:
+                c.shapes(layer_index).insert(component.begin_shapes_rec(layer_index))
+            else:
+                c.shapes(layer_index).insert(component.shapes(layer_index))
+
+    return c
+
+
+def move_to_center(component: Component, dx: float = 0, dy: float = 0) -> gf.Component:
+    """Moves the component to the center of the bounding box."""
+    c = component
+    c.transform(gf.kdb.DTrans(-c.dbbox().center().x + dx, -c.dbbox().center().y + dy))
+    return c
+
+
+def move_port(
+    component: Component, port_name: str, dx: float = 0, dy: float = 0
+) -> gf.Component:
+    """Moves the component port to a specific location.
+
+    Warning: This function modifies the component in-place.
+
+    Args:
+        component: to move the port.
+        port_name: to move.
+        dx: to move the port.
+        dy: to move the port.
+    """
+    c = component
+    c.transform(gf.kdb.DTrans(-c.ports[port_name].x + dx, -c.ports[port_name].y + dy))
+    return c
+
+
+GetPolygonsResult: TypeAlias = "dict[LayerSpec, list[kf.kdb.Polygon]]"
+
+
+def get_polygons(
+    component_or_instance: "Component | ComponentReference",
+    merge: bool = False,
+    by: Literal["index", "name", "tuple"] = "index",
+    layers: LayerSpecs | None = None,
+    smooth: float | None = None,
+) -> GetPolygonsResult:
+    """Returns a dict of Polygons per layer.
+
+    Args:
+        component_or_instance: to extract the polygons.
+        merge: if True, merges the polygons.
+        by: the format of the resulting keys in the dictionary ('index', 'name', 'tuple').
+        layers: list of layer specs to extract the polygons from. If None, extracts all layers.
+        smooth: if True, smooths the polygons.
+    """
+    from gdsfactory.pdk import get_layer, get_layer_name, get_layer_tuple
+
+    if by == "index":
+        get_key: "Callable[[LayerSpec], LayerSpec]" = get_layer
+    elif by == "name":
+        get_key = get_layer_name
+    elif by == "tuple":
+        get_key = get_layer_tuple
+    else:
+        raise ValueError("argument 'by' should be 'index' | 'name' | 'tuple'")
+
+    polygons: GetPolygonsResult = {}
+
+    c = component_or_instance
+    if layers is None:
+        layers = [
+            (info.layer, info.datatype)
+            for info in c.kcl.layer_infos()
+            if not c.bbox(c.kcl.layer(info)).empty()
+        ]
+
+    layer_indexes = [get_layer(layer) for layer in layers]
+
+    for layer_index in layer_indexes:
+        layer_key = get_key(layer_index)
+        if isinstance(component_or_instance, gf.Component):
+            r = gf.Region(c.begin_shapes_rec(layer_index))
+        else:
+            r = kf.kdb.Region(c.cell.begin_shapes_rec(layer_index)).transformed(
+                c.cplx_trans
+            )
+        if layer_key not in polygons:
+            polygons[layer_key] = []
+        if smooth:
+            r.smooth(round(smooth / c.kcl.dbu))
+        if merge:
+            r.merge()
+        for p in r.each():
+            polygons[layer_key].append(p)
+    return polygons
+
+
+def get_polygons_points(
+    component_or_instance: "Component | ComponentReference",
+    merge: bool = False,
+    scale: float | None = None,
+    by: Literal["index", "name", "tuple"] = "index",
+    layers: LayerSpecs | None = None,
+) -> dict[int | str | tuple[int, int], list[npt.NDArray[np.floating[Any]]]]:
+    """Returns a dict with list of points per layer.
+
+    Args:
+        component_or_instance: to extract the polygons.
+        merge: if True, merges the polygons.
+        scale: if True, scales the points.
+        by: the format of the resulting keys in the dictionary ('index', 'name', 'tuple').
+        layers: list of layer specs to extract the polygons from. If None, extracts all layers.
+    """
+    polygons_dict = get_polygons(
+        component_or_instance=component_or_instance, merge=merge, by=by, layers=layers
+    )
+    polygons_points: dict[
+        tuple[int, int] | str | int, list[npt.NDArray[np.floating[Any]]]
+    ] = {}
+    for layer, polygons in polygons_dict.items():
+        all_points: list[npt.NDArray[np.floating[Any]]] = []
+        for polygon in polygons:
+            if scale:
+                points = np.array(
+                    [
+                        (point.x * scale, point.y * scale)
+                        for point in polygon.to_simple_polygon()
+                        .to_dtype(component_or_instance.kcl.dbu)
+                        .each_point()
+                    ]
+                )
+            else:
+                points = np.array(
+                    [
+                        (point.x, point.y)
+                        for point in polygon.to_simple_polygon()
+                        .to_dtype(component_or_instance.kcl.dbu)
+                        .each_point()
+                    ]
+                )
+            all_points.append(points)
+        polygons_points[layer] = all_points
+    return polygons_points
+
+
+def get_point_inside(
+    component_or_instance: "Component | ComponentReference", layer: LayerSpec
+) -> npt.NDArray[np.floating[Any]]:
+    """Returns a point inside the component or instance.
+
+    Args:
+        component_or_instance: to find a point inside.
+        layer: to find a point inside.
+    """
+    layer = gf.get_layer(layer)
+    return np.array(
+        get_polygons_points(component_or_instance, layers=[layer])[layer][0][0]
+    )
+
+
+def sign_shape(pts: npt.NDArray[np.floating[Any]]) -> float:
+    pts2 = np.roll(pts, 1, axis=0)
+    dx = pts2[:, 0] - pts[:, 0]
+    y = pts2[:, 1] + pts[:, 1]
+    return float(np.sign((dx * y).sum()))
+
+
+def area(pts: npt.NDArray[np.floating[Any]]) -> float:
+    """Returns the area."""
+    pts2 = np.roll(pts, 1, axis=0)
+    dx = pts2[:, 0] - pts[:, 0]
+    y = pts2[:, 1] + pts[:, 1]
+    return float(np.sum(dx * y) / 2)
+
+
+def centered_diff(a: npt.NDArray[np.floating[Any]]) -> npt.NDArray[np.floating[Any]]:
+    d = (np.roll(a, -1, axis=0) - np.roll(a, 1, axis=0)) / 2
+    return np.array(d)[1:-1]
+
+
+def centered_diff2(a: npt.NDArray[np.floating[Any]]) -> npt.NDArray[np.floating[Any]]:
+    d = (np.roll(a, -1, axis=0) - a) - (a - np.roll(a, 1, axis=0))
+    return np.array(d[1:-1])
+
+
+def curvature(
+    points: npt.NDArray[np.floating[Any]], t: npt.NDArray[np.floating[Any]]
+) -> npt.NDArray[np.floating[Any]]:
+    """Args are the points and the tangents at each point.
+
+        points : numpy.array shape (n, 2)
+        t: numpy.array of size n
+
+    Return:
+        The curvature at each point.
+
+    Computes the curvature at every point excluding the first and last point.
+
+    For a planar curve parametrized as P(t) = (x(t), y(t)), the curvature is given
+    by (x' y'' - x'' y' ) / (x' **2 + y' **2)**(3/2)
+
+    """
+    # Use centered difference for derivative
+    dt = centered_diff(t)
+    dp = centered_diff(points)
+    dp2 = centered_diff2(points)
+
+    dx = dp[:, 0] / dt
+    dy = dp[:, 1] / dt
+
+    dx2 = dp2[:, 0] / dt**2
+    dy2 = dp2[:, 1] / dt**2
+
+    res = (dx * dy2 - dx2 * dy) / (dx**2 + dy**2) ** (3 / 2)
+    assert isinstance(res, np.ndarray)
+    return res
+
+
+def radius_of_curvature(
+    points: npt.NDArray[np.floating[Any]], t: npt.NDArray[np.floating[Any]]
+) -> npt.NDArray[np.floating[Any]]:
+    return 1 / curvature(points, t)
+
+
+def path_length(points: npt.NDArray[np.floating[Any]]) -> float:
+    """Returns: The path length.
+
+    Args:
+        points: With shape (N, 2) representing N points with coordinates x, y.
+    """
+    dpts = points[1:, :] - points[:-1, :]
+    _d = dpts**2
+    return float(np.sum(np.sqrt(_d[:, 0] + _d[:, 1])))
+
+
+def snap_angle(a: float) -> float:
+    """Returns angle snapped along manhattan angle (0, 90, 180, 270).
+
+    a: angle in deg
+    Return angle snapped along manhattan angle
+    """
+    a = a % 360
+    if -45 < a < 45:
+        return 0
+    elif 45 < a < 135:
+        return 90
+    elif 135 < a < 225:
+        return 180
+    elif 225 < a < 315:
+        return 270
+    else:
+        return 0
+
+
+def angles_rad(pts: npt.NDArray[np.floating[Any]]) -> npt.NDArray[np.floating[Any]]:
+    """Returns the angles (radians) of the connection between each point and the next."""
+    _pts = np.roll(pts, -1, 0)
+    return np.array(np.arctan2(_pts[:, 1] - pts[:, 1], _pts[:, 0] - pts[:, 0]))
+
+
+def angles_deg(pts: npt.NDArray[np.floating[Any]]) -> npt.NDArray[np.floating[Any]]:
+    """Returns the angles (degrees) of the connection between each point and the next."""
+    return angles_rad(pts) * RAD2DEG
+
+
+def extrude_path(
+    points: npt.NDArray[np.floating[Any]],
+    width: float,
+    with_manhattan_facing_angles: bool = True,
+    spike_length: float64 | int | float = 0,
+    start_angle: int | None = None,
+    end_angle: int | None = None,
+    grid: float | None = None,
+) -> npt.NDArray[np.floating[Any]]:
+    """Extrude a path of `width` along a curve defined by `points`.
+
+    Args:
+        points: numpy 2D array of shape (N, 2).
+        width: of the path to extrude.
+        with_manhattan_facing_angles: snaps to manhattan angles.
+        spike_length: in um.
+        start_angle: in degrees.
+        end_angle: in degrees.
+        grid: in um.
 
     Returns:
-        Same component with marker layer applied.
+        numpy 2D array of shape (2*N, 2).
     """
-    component = gf.get_component(component)
+    grid = grid or gf.kcl.dbu
 
-    if layers_to_mark:
-        c = gf.Component()
-        c.add_ref(component.extract(layers_to_mark))
+    assert grid is not None
+
+    if isinstance(points, list):
+        points = np.stack([(p[0], p[1]) for p in points], axis=0)
+
+    a = angles_deg(points)
+    if with_manhattan_facing_angles:
+        _start_angle = snap_angle(a[0] + 180)
+        _end_angle = snap_angle(a[-2])
     else:
-        c = component
-    polygon = c.get_polygons(as_shapely_merged=True)
+        _start_angle = a[0] + 180
+        _end_angle = a[-2]
 
-    if polygon and not polygon.is_empty:
-        component.add_polygon(polygon, layer=marker_layer)
-        if marker_label:
-            component.add_label(
-                marker_label,
-                position=(
-                    (point := polygon.representative_point()).x,
-                    point.y,
-                ),
-                layer=marker_layer,
-            )
+    start_angle_ = start_angle if start_angle is not None else _start_angle
+    end_angle_ = end_angle if end_angle is not None else _end_angle
+
+    assert start_angle_ is not None
+    assert end_angle_ is not None
+
+    a2 = angles_rad(points) * 0.5
+    a1 = np.roll(a2, 1)
+
+    a2[-1] = end_angle_ * DEG2RAD - a2[-2]
+    a1[0] = start_angle_ * DEG2RAD - a1[1]
+
+    a_plus = a2 + a1
+    cos_a_min = np.cos(a2 - a1)
+    offsets = np.column_stack((-sin(a_plus) / cos_a_min, cos(a_plus) / cos_a_min)) * (
+        0.5 * width
+    )
+
+    points_back = np.flipud(points - offsets)
+    if spike_length != 0:
+        d = spike_length
+        a_start = start_angle_ * DEG2RAD
+        a_end = end_angle_ * DEG2RAD
+        p_start_spike = points[0] + d * np.array([[cos(a_start), sin(a_start)]])
+        p_end_spike = points[-1] + d * np.array([[cos(a_end), sin(a_end)]])
+
+        pts = np.vstack((p_start_spike, points + offsets, p_end_spike, points_back))
     else:
-        warnings.warn(
-            f"Could not add {marker_layer=} to {component.name!r} because it is empty."
-            f"Supplied {layers_to_mark=!r}.",
-            stacklevel=2,
-        )
-    return component.flatten() if flatten else component
+        pts = np.vstack((points + offsets, points_back))
+
+    return np.array(np.round(pts / grid) * grid)
 
 
-def change_keywords_in_nested_partials(
-    func: partial, config: Mapping[str, Any]
-) -> partial:
-    """Change keywords in nested partials `functools.partial`. Returns new partial.
+def trim(
+    component: Component,
+    domain: Sequence[tuple[float, float]],
+    flatten: bool = False,
+) -> gf.Component:
+    """Trim a component by another geometry, preserving the component's layers and ports.
+
+    Useful to get a smaller component from a larger one for simulation.
 
     Args:
-        func: Partialed function to change.
-        config: Nested dictionary with the keywords to change.
-            Key-value pairs correspond to function arguments in the partials.
+        component: Component(/Reference).
+        domain: list of array-like[N][2] representing the boundary of the component to keep.
+        flatten: if True, flattens the component.
+
+    Returns: New component with layers (and possibly ports) of the component restricted to the domain.
+
+    .. plot::
+      :include-source:
+
+      import gdsfactory as gf
+      c = gf.components.straight_pin(length=10)
+      trimmed_c = gf.functions.trim(component=c, domain=[[0, -5], [0, 5], [5, 5], [5, -5]])
+      trimmed_c.plot()
     """
-
-    if not config:
-        return func
-
-    if not isinstance(func, partial):
-        raise TypeError(f"{func=!r} is not a partial")
-    keyword_args = dict(func.keywords)
-    for key, value in config.items():
-        keyword_args[key] = (
-            change_keywords_in_nested_partials(keyword_args[key], value)
-            if isinstance(keyword_args.get(key), partial)
-            else value
-        )
-    return partial(func.func, *func.args, **keyword_args)
+    dummy = gf.Component()
+    dummy.add_polygon(domain, layer=(1, 0))
+    dbbox = dummy.dbbox()
+    left, bottom, right, top = dbbox.left, dbbox.bottom, dbbox.right, dbbox.top
+    component.trim(left=left, right=right, bottom=bottom, top=top, flatten=flatten)
+    return component
 
 
-add_marker_layer_container = partial(container, function=add_marker_layer)
+@gf.cell
+def rotate(component: Component, angle: float) -> gf.Component:
+    """Rotate a component by an angle in degrees.
+
+    Args:
+        component: to rotate.
+        angle: in increments of 90°.
+
+    Returns: Rotated component.
+    """
+    c = gf.Component()
+    component = gf.get_component(component)
+    ref = c.add_ref(component)
+    ref.rotate(angle=angle)
+    c.add_ports(ref.ports)
+    c.copy_child_info(component)
+    return c
 
 
-__all__ = (
-    "add_marker_layer",
-    "add_marker_layer_container",
-    "add_port",
-    "add_settings_label",
-    "add_text",
-    "auto_rename_ports",
-    "cache",
-    "change_keywords_in_nested_partials",
-    "mirror",
-    "move",
-    "move_port_to_zero",
-    "rotate",
-    "update_info",
-)
+rotate90 = partial(rotate, angle=90)
+rotate180 = partial(rotate, angle=180)
+rotate270 = partial(rotate, angle=270)
+
+
+@gf.cell
+def mirror(component: Component, x_mirror: bool = True) -> gf.Component:
+    """Rotate a component by an angle in degrees.
+
+    Args:
+        component: to rotate.
+        x_mirror: if True, mirrors the component along the x-axis.
+
+    Returns: Rotated component.
+    """
+    c = gf.Component()
+    component = gf.get_component(component)
+    ref = c.add_ref(component)
+    if x_mirror:
+        ref.mirror_x()
+    else:
+        ref.mirror_y()
+    c.add_ports(ref.ports)
+    c.copy_child_info(component)
+    return c
+
 
 if __name__ == "__main__":
-    c = gf.components.mmi1x2(
-        length_mmi=10,
-        decorator=partial(add_settings_label, settings=["name", "length_mmi"]),
-    )
-    # c.show(show_ports=True)
-
-    # cr = rotate(component=c)
-    # cr.show()
-
-    cr = transformed(c.ref())
-    cr.show()
-
-    # cr = c.rotate()
-    # cr.pprint()
-    # cr.show()
-
-    # cm = move(c, destination=(20, 20))
-    # cm.show()
-
-    # cm = mirror(c)
-    # cm.show()
-
-    # cm = c.mirror()
-    # cm.show()
-
-    # cm2 = move_port_to_zero(cm)
-    # cm2.show()
-
-    # cm3 = add_text(c, "hi")
-    # cm3.show()
-
-    # cr = rotate(component=c)
-    # cr.show()
-    # print(component_rotated)
-
-    # component_rotated.pprint
-    # component_netlist = component.get_netlist()
-    # component.pprint_netlist()
+    c = gf.c.bend_circular()
+    c = mirror(c)
+    c.show()

@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import typing
-from functools import cache
+from functools import cache, partial
 
 from gdsfactory.config import PATH
-from gdsfactory.generic_tech.layer_map import GenericLayerMap as LayerMap
+from gdsfactory.generic_tech.layer_map import LAYER
 from gdsfactory.generic_tech.layer_stack import LAYER_STACK
 from gdsfactory.technology import LayerViews
 
 if typing.TYPE_CHECKING:
     from gdsfactory.pdk import Pdk
 
-LAYER = LayerMap()
+__all__ = ["LAYER", "LAYER_STACK", "get_generic_pdk"]
+
 
 PORT_MARKER_LAYER_TO_TYPE = {
     LAYER.PORT: "optical",
@@ -33,11 +34,6 @@ PORT_LAYER_TO_TYPE = {
 
 PORT_TYPE_TO_MARKER_LAYER = {v: k for k, v in PORT_MARKER_LAYER_TO_TYPE.items()}
 
-LAYER_TRANSITIONS = {
-    LAYER.WG: "taper",
-    LAYER.M3: "taper",
-    # (LAYER.)
-}
 
 LAYER_CONNECTIVITY = [
     ("NPP", "VIAC", "M1"),
@@ -49,29 +45,38 @@ LAYER_CONNECTIVITY = [
 
 @cache
 def get_generic_pdk() -> Pdk:
-    from gdsfactory.components import cells
+    import gdsfactory as gf
+    from gdsfactory.config import PATH, __version__
     from gdsfactory.cross_section import cross_sections
-    from gdsfactory.generic_tech.containers import containers
     from gdsfactory.generic_tech.simulation_settings import materials_index
+    from gdsfactory.get_factories import get_cells
     from gdsfactory.pdk import Pdk, constants
 
     LAYER_VIEWS = LayerViews(filepath=PATH.klayout_yaml)
 
-    cells = cells.copy()
-    cells.update(containers)
+    cells = get_cells([gf.components])
+    containers_dict = get_cells([gf.containers])
+
+    layer_transitions = {
+        LAYER.WG: partial(gf.c.taper, cross_section="strip", length=10),
+        (LAYER.WG, LAYER.WGN): "taper_sc_nc",
+        (LAYER.WGN, LAYER.WG): "taper_nc_sc",
+        LAYER.M3: "taper_electrical",
+    }
 
     return Pdk(
         name="generic",
-        cells=cells,
+        version=__version__,
+        cells={c: cells[c] for c in cells if c not in containers_dict},
+        containers=containers_dict,
         cross_sections=cross_sections,
-        layers=dict(LAYER),
+        layers=LAYER,
         layer_stack=LAYER_STACK,
         layer_views=LAYER_VIEWS,
-        layer_transitions=LAYER_TRANSITIONS,
-        materials_index=materials_index,
+        layer_transitions=layer_transitions,  # type: ignore[arg-type]
+        materials_index=materials_index,  # type: ignore[arg-type]
         constants=constants,
         connectivity=LAYER_CONNECTIVITY,
-        enforce_width_mismatch_layers=[LAYER.WG],
     )
 
 
@@ -87,7 +92,7 @@ if __name__ == "__main__":
 
     t = KLayoutTechnology(
         name="generic_tech",
-        layer_map=dict(LAYER),
+        layer_map=LAYER,  # type: ignore[arg-type]
         layer_views=LAYER_VIEWS,
         layer_stack=LAYER_STACK,
         connectivity=connectivity,
@@ -97,6 +102,5 @@ if __name__ == "__main__":
     layer_views = LayerViews(filepath=PATH.klayout_yaml)
     layer_views.to_lyp(PATH.klayout_lyp)
 
-    # pdk = get_generic_pdk()
-    # pdk.layer_views.to_yaml('layer_views2.yaml')
-    # print(pdk.name)
+    pdk = get_generic_pdk()
+    pdk.activate()

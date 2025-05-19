@@ -1,79 +1,16 @@
-function: ring_single_pn
 info: {}
-module: gdsfactory.components.ring_single_pn
-name: ring_single_pn
+name: ring_single_pn_gdsfacto_9890a16c
 settings:
-  cross_section:
-    function: cross_section
-    module: gdsfactory.cross_section
-    settings:
-      add_pins_function_name: null
-      radius: 10
-      radius_min: 5
-      sections:
-      - hidden: false
-        insets: null
-        layer: SLAB90
-        name: slab
-        offset: 0
-        offset_function: null
-        port_names:
-        - null
-        - null
-        port_types:
-        - optical
-        - optical
-        simplify: null
-        width: 4.85
-        width_function: null
+  cross_section: rib
   doped_heater: true
   doped_heater_angle_buffer: 10
   doped_heater_layer: NPP
-  doped_heater_waveguide_offset: 2.175
+  doped_heater_waveguide_offset: 1.175
   doped_heater_width: 0.5
   doping_angle: 250
   gap: 0.3
-  heater_vias:
-    function: via_stack
-    module: gdsfactory.components.via_stack
-    settings:
-      layers:
-      - M1
-      - M2
-      size:
-      - 0.5
-      - 0.5
-      vias:
-      - function: via
-        module: gdsfactory.components.via
-        settings:
-          enclosure: 0.1
-          layer: VIAC
-          size:
-          - 0.1
-          - 0.1
-          spacing:
-          - 0.2
-          - 0.2
-      - function: via
-        module: gdsfactory.components.via
-        settings:
-          enclosure: 0.1
-          layer: VIA1
-          size:
-          - 0.1
-          - 0.1
-          spacing:
-          - 0.2
-          - 0.2
-  pn_cross_section:
-    function: pn
-    module: gdsfactory.cross_section
-    settings:
-      layer_metal: M1
-      layer_via: VIAC
-      width_doping: 2.425
-      width_metal: 0.5
-      width_slab: 4.85
-      width_via: 0.5
-  radius: 5.0
+  heater_vias: Fvia_stack_Mgdsfactorypcomponentspviaspvia_stack_SS0p5_0p5_LM1_M2_M3_VFvia_Mgdsfactorypcomponentspviaspvia_SLVIAC_S0p1_0p1_E0p1_P0p2_Fvia_Mgdsfactorypcomponentspviaspvia_SLVIA1_S0p1_0p1_E0p1_P0p2_None
+  pn_cross_section: Fpn_Mgdsfactorypcross_section_SWD2p425_WS4p85_LVVIAC_WV0p5_LMM1_WM0p5
+  pn_vias: via_stack_slab_m3
+  pn_vias_width: 3
+  radius: 5

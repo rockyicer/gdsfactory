@@ -1,19 +1,23 @@
 from __future__ import annotations
 
+import numpy as np
+
 import gdsfactory as gf
 from gdsfactory import Section
+from gdsfactory.cross_section import CrossSection
 from gdsfactory.generic_tech import LAYER
+from gdsfactory.typings import LayerSpec
 
 
 def test_path_near_collinear() -> None:
-    p = gf.path.smooth(points=[(0, 0), (0, 1000), (1, 10000)])
-    c = p.extrude(cross_section="xs_sc")
+    p = gf.path.smooth(points=np.array([(0, 0), (0, 1000), (1, 10000)]))
+    c = p.extrude(cross_section="strip")
     assert c
 
 
 def test_path_port_types() -> None:
     """Test path with different port types."""
-    s0 = gf.Section(width=0.5, offset=0, layer=LAYER.SLAB90, port_names=["o1", "o2"])
+    s0 = gf.Section(width=0.5, offset=0, layer=LAYER.SLAB90, port_names=("o1", "o2"))
     s1 = gf.Section(
         width=2.0,
         offset=-4,
@@ -34,20 +38,17 @@ def test_extrude_transition() -> None:
     w1 = 1
     w2 = 5
     length = 10
-    cs1 = gf.get_cross_section("xs_sc", width=w1)
-    cs2 = gf.get_cross_section("xs_sc", width=w2)
+    cs1 = gf.get_cross_section("strip", width=w1)
+    cs2 = gf.get_cross_section("strip", width=w2)
     transition = gf.path.transition(cs1, cs2)
     p = gf.path.straight(length)
-    c = gf.path.extrude(p, transition)
-    assert c.ports["o1"].cross_section == cs1
-    assert c.ports["o2"].cross_section == cs2
+    c = gf.path.extrude_transition(p, transition)
+
     assert c.ports["o1"].width == w1
     assert c.ports["o2"].width == w2
-    assert c.ports["o1"].cross_section.width == w1
-    assert c.ports["o2"].cross_section.width == w2
 
     expected_area = (w1 + w2) / 2 * length
-    actual_area = c._cell.area(True)[(1, 0)]
+    actual_area = c.area((1, 0))
     assert actual_area == expected_area
 
 
@@ -55,17 +56,24 @@ def test_transition_cross_section() -> None:
     w1 = 1
     w2 = 5
     length = 10
-    cs1 = gf.get_cross_section("xs_sc", width=w1)
-    cs2 = gf.get_cross_section("xs_sc", width=w2)
+    cs1 = gf.get_cross_section("strip", width=w1)
+    cs2 = gf.get_cross_section("strip", width=w2)
     transition = gf.path.transition(cs1, cs2)
 
     p = gf.path.straight(length=length)
     c = gf.path.extrude_transition(p=p, transition=transition)
+
     assert c.ports["o1"].width == w1
     assert c.ports["o2"].width == w2
 
 
-def dummy_cladded_wg_cs(intent_layer, core_layer, core_width, clad_layer, clad_width):
+def dummy_cladded_wg_cs(
+    intent_layer: LayerSpec,
+    core_layer: LayerSpec,
+    core_width: float,
+    clad_layer: LayerSpec,
+    clad_width: float,
+) -> CrossSection:
     sections = (
         Section(width=core_width, offset=0, layer=core_layer, name="core"),
         Section(width=clad_width, offset=0, layer=clad_layer, name="clad"),
@@ -81,8 +89,8 @@ def test_transition_cross_section_different_layers() -> None:
     w2 = 5
     length = 10
 
-    intent_layer_1 = (852, 21)
-    intent_layer_2 = (853, 21)
+    intent_layer_1 = (1, 0)
+    intent_layer_2 = (2, 0)
 
     # in platforms with multiple waveguide types, it is useful to use separate intent layers for the different cross sections
     # this will simulate a transition between waveguides with different intent layers (which i just made up arbitrarily for this test)
@@ -104,23 +112,20 @@ def test_transition_cross_section_different_layers() -> None:
     transition = gf.path.transition(cs1, cs2)
     p = gf.path.straight(length=length)
     c = gf.path.extrude_transition(p=p, transition=transition)
+
+    core_width = core_width
+    intent_layer_1_ = gf.get_layer(intent_layer_1)
+    intent_layer_2_ = gf.get_layer(intent_layer_2)
+
     assert c.ports["o1"].width == core_width
     assert c.ports["o2"].width == core_width
-    assert c.ports["o1"].layer == intent_layer_1
-    assert c.ports["o2"].layer == intent_layer_2
+
+    assert c.ports["o1"].layer == intent_layer_1_
+    assert c.ports["o2"].layer == intent_layer_2_
 
     # area of a trapezoid
     expected_area = (w1 + w2) / 2 * length
-    assert c.area("WGCLAD") == expected_area, f"{c.area('WGCLAD')} != {expected_area}"
-
-
-def test_diagonal_extrude_consistent_naming() -> None:
-    """This test intends to check that diagonal extrude components are properly serialized and get the same name on different platforms/environments."""
-    p = gf.path.Path([(0, 0), (4.9932849, 6.328497)])
-    c = p.extrude(cross_section="xs_sc")
-    # This name was generated at the time of writing the test. We expect it to be the same across other platforms.
-    expected_name = "extrude_d442fd31"
-    assert c.name == expected_name, c.name
+    assert c.area("WGCLAD") == expected_area
 
 
 def test_extrude_port_centers() -> None:
@@ -132,32 +137,37 @@ def test_extrude_port_centers() -> None:
     s = gf.components.straight(cross_section=xs)
 
     assert s.ports["e1"].center[0] == s.ports["o1"].center[0]
-    assert s.ports["e1"].center[1] == s.ports["o1"].center[1] - s1_offset
+    assert s.ports["e1"].center[1] == s.ports["o1"].center[1] - s1_offset, s.ports[
+        "e1"
+    ].center[1]
 
     assert s.ports["e2"].center[0] == s.ports["o2"].center[0]
     assert s.ports["e2"].center[1] == s.ports["o2"].center[1] - s1_offset
 
 
+def test_extrude_component_along_path() -> None:
+    p = gf.path.straight()
+    p += gf.path.arc(10)
+    p += gf.path.straight()
+
+    # Define a cross-section with a via
+    via = gf.cross_section.ComponentAlongPath(
+        component=gf.c.rectangle(size=(1, 1), centered=True), spacing=5, padding=2
+    )
+    s = gf.Section(width=0.5, offset=0, layer=(1, 0), port_names=("in", "out"))
+    x = gf.CrossSection(sections=(s,), components_along_path=(via,))
+
+    # Combine the path with the cross-section
+    c = gf.path.extrude(p, cross_section=x)
+    assert c
+
+
+def test_extrude_cross_section_list_of_sections() -> None:
+    s = gf.Section(width=0.5, offset=0.5, layer="WG")
+    xs = gf.CrossSection(sections=(s,))
+    c = gf.c.straight(cross_section=xs)
+    assert c
+
+
 if __name__ == "__main__":
-    test_diagonal_extrude_consistent_naming()
-    # test_transition_cross_section()
-    # test_transition_cross_section_different_layers()
-    # test_extrude_transition()
-
-    # P = gf.path.straight(length=10)
-
-    # s0 = gf.Section(
-    #     width=1, offset=0, layer=(1, 0), name="core", port_names=("o1", "o2")
-    # )
-    # s1 = gf.Section(width=3, offset=0, layer=(3, 0), name="slab")
-    # X1 = gf.CrossSection(sections=(s0, s1))
-
-    # s2 = gf.Section(
-    #     width=0.5, offset=0, layer=(1, 0), name="core", port_names=("o1", "o2")
-    # )
-    # s3 = gf.Section(width=2.0, offset=0, layer=(3, 0), name="slab")
-    # X2 = gf.CrossSection(sections=(s2, s3))
-    # t = gf.path.transition(X1, X2, width_type="linear")
-    # c = gf.path.extrude(P, t, shear_angle_start=10, shear_angle_end=45)
-
-    # c.show(show_ports=True)
+    test_transition_cross_section_different_layers()

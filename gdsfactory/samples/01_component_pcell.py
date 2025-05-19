@@ -16,7 +16,7 @@ from gdsfactory.typings import LayerSpec
 
 @gf.cell
 def straight_wide(
-    length: float = 5.0, width: float = 1.0, layer: LayerSpec = (2, 0)
+    length: float = 5.0, width: float = 1.0, layer: LayerSpec = (1, 0)
 ) -> gf.Component:
     """Returns straight Component.
 
@@ -24,9 +24,8 @@ def straight_wide(
         length: of the straight.
         width: in um.
         layer: layer spec
-
     """
-    wg = gf.Component("straight_sample")
+    wg = gf.Component(name="straight_sample")
     wg.add_polygon([(0, 0), (length, 0), (length, width), (0, width)], layer=layer)
     wg.add_port(
         name="o1", center=(0, width / 2), width=width, orientation=180, layer=layer
@@ -45,7 +44,7 @@ def straight_wide(
 # make a Component
 
 if __name__ == "__main__":
-    c = gf.Component("MultiWaveguide")
+    c = gf.Component(name="MultiWaveguide")
 
     # Now say we want to add a few straights to to our  Component" c.
     # First we create the straights.  As you can see from the straight_wide() function
@@ -54,8 +53,8 @@ if __name__ == "__main__":
     # only this one has some geometry inside it.
     #
     # Let's create two of these Components by calling the straight_wide() function
-    WG1 = straight_wide(length=10, width=1)
-    WG2 = straight_wide(length=12, width=2)
+    _wg1 = straight_wide(length=10, width=1, layer=(1, 0))
+    _wg2 = straight_wide(length=12, width=2, layer=(2, 0))
 
     # Now we've made two straights Component WG1 and WG2, and we have a blank
     # Component c. We can add references from the devices WG1 and WG2 to our blank
@@ -63,10 +62,10 @@ if __name__ == "__main__":
     # After adding WG1, we see that the add_ref() function returns a handle to our
     # reference, which we will label with lowercase letters wg1 and wg2.  This
     # handle will be useful later when we want to move wg1 and wg2 around in c.
-    wg1 = c.add_ref(WG1)  # Using the function add_ref()
-    wg2 = c << WG2  # Using the << operator which is identical to add_ref()
+    wg1 = c.add_ref(_wg1)  # Using the function add_ref()
+    wg2 = c << _wg2  # Using the << operator which is identical to add_ref()
 
     # Alternatively, we can do this all on one line
-    wg3 = c.add_ref(straight_wide(length=14, width=3))
+    wg3 = c.add_ref(straight_wide(length=14, width=3, layer=(3, 0)))
 
-    c.show(show_ports=True)  # show it in Klayout
+    c.show()  # show it in Klayout

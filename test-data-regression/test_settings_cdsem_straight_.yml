@@ -1,21 +1,15 @@
-function: cdsem_straight
 info: {}
-module: gdsfactory.components.cdsem_straight
-name: cdsem_straight
+name: cdsem_straight_gdsfacto_ba231691
 settings:
-  cross_section: xs_sc
-  length: 420.0
-  positions: null
-  spacing: 7.0
-  text:
-    function: text_rectangular
-    module: gdsfactory.components.text_rectangular
-    settings:
-      size: 1
+  cross_section: strip_no_ports
+  length: 420
+  spacing: 7
+  text: text_rectangular
+  text_size: 1
   widths:
   - 0.4
   - 0.45
   - 0.5
   - 0.6
   - 0.8
-  - 1.0
+  - 1

@@ -1,15 +1,11 @@
-function: text_rectangular
 info: {}
-module: gdsfactory.components.text_rectangular
-name: text_rectangular
+name: text_rectangular_gdsfac_91ffd302
 settings:
-  font:
-    function: rectangular_font
+  font: rectangular_font
   justify: left
   layer: WG
-  layers: null
   position:
-  - 0.0
-  - 0.0
-  size: 10.0
+  - 0
+  - 0
+  size: 10
   text: abcd

@@ -1,10 +1,8 @@
-function: ellipse
 info: {}
-module: gdsfactory.components.ellipse
-name: ellipse
+name: ellipse_gdsfactorypcomp_4bc4b5ac
 settings:
   angle_resolution: 2.5
   layer: WG
   radii:
-  - 10.0
-  - 5.0
+  - 10
+  - 5

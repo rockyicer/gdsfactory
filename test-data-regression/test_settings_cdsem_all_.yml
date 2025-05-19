@@ -1,10 +1,9 @@
-function: cdsem_all
 info: {}
-module: gdsfactory.components.cdsem_all
-name: cdsem_all
+name: cdsem_all_gdsfactorypco_a9617a4f
 settings:
   bend90: bend_circular
-  cross_section: xs_sc
+  cdsem_bend180: cdsem_bend180
+  cross_section: strip
   dense_lines_gap: 0.3
   dense_lines_labels:
   - DL
@@ -12,16 +11,14 @@ settings:
   - DH
   dense_lines_width: 0.3
   dense_lines_width_difference: 0.02
+  spacing: 5
   straight: straight
-  text:
-    function: text_rectangular
-    module: gdsfactory.components.text_rectangular
-    settings:
-      size: 1
+  text: text_rectangular
+  text_size: 1
   widths:
   - 0.4
   - 0.45
   - 0.5
   - 0.6
   - 0.8
-  - 1.0
+  - 1

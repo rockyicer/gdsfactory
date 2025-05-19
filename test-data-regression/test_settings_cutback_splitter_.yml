@@ -1,21 +1,14 @@
-function: cutback_splitter
 info:
   components: 88
-module: gdsfactory.components.cutback_splitter
-name: mmi1x2_cutback_splitter
+name: cutback_splitter_gdsfac_81980618
 settings:
-  bend180:
-    function: bend_euler
-    module: gdsfactory.components.bend_euler
-    settings:
-      angle: 180
+  bend180: bend_euler180
   cols: 4
-  component:
-    function: mmi1x2
-  cross_section: xs_sc
+  component: mmi1x2
+  cross_section: strip
   mirror: false
   port1: o1
   port2: o2
   port3: o3
   rows: 5
-  straight_length: null
+  straight: straight

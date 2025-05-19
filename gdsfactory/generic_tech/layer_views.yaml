@@ -162,19 +162,19 @@ LayerViews:
   VIAC:
     layer: [40, 0]
     layer_in_name: true
-    hatch_pattern: hollow
+    hatch_pattern: solid
     width: 1
     color: "#cc4c00"
   VIA1:
     layer: [44, 0]
     layer_in_name: true
-    hatch_pattern: hollow
+    hatch_pattern: solid
     width: 1
     color: "grey"
   VIA2:
     layer: [43, 0]
     layer_in_name: true
-    hatch_pattern: hollow
+    hatch_pattern: solid
     width: 1
     color: "#805000"
   CAPACITOR:
@@ -200,13 +200,13 @@ LayerViews:
     layer_in_name: true
     hatch_pattern: strongly left-hatched dense
     width: 1
-    color: "black"
+    color: "grey"
   SITILES:
     layer: [190, 0]
     layer_in_name: true
     hatch_pattern: coarsely dotted
     width: 1
-    color: "black"
+    color: "grey"
   M1TILES:
     layer: [191, 0]
     layer_in_name: true
@@ -241,7 +241,7 @@ LayerViews:
     layer: [206, 0]
     layer_in_name: true
     hatch_pattern: lightly left-hatched
-    color: "blue"
+    color: "red"
   DICING:
     layer: [65, 0]
     layer_in_name: true
@@ -254,7 +254,7 @@ LayerViews:
     hatch_pattern: hollow
     visible: false
     width: 2
-    color: "black"
+    color: "grey"
   FLOORPLAN:
     layer: [64, 0]
     layer_in_name: true
@@ -266,7 +266,7 @@ LayerViews:
         layer: [100, 0]
         layer_in_name: true
         hatch_pattern: hollow
-        color: "black"
+        color: "grey"
       MONITOR:
         layer: [101, 0]
         layer_in_name: true
@@ -302,12 +302,12 @@ LayerViews:
     layer: [66, 0]
     hatch_pattern: hollow
     width: 1
-    color: "blue"
+    color: "gray"
   Errors:
     layer: [69, 0]
     hatch_pattern: hollow
     width: 1
-    color: "blue"
+    color: "gray"
   PinRecM:
     layer: [1, 11]
     hatch_pattern: hollow
@@ -325,13 +325,13 @@ LayerViews:
         layer: [301, 0]
         layer_in_name: true
         width: 1
-        color: "black"
+        color: "grey"
         hatch_pattern: solid
       XS_SIN:
         layer: [319, 0]
         layer_in_name: true
         width: 1
-        color: "black"
+        color: "grey"
         hatch_pattern: solid
       XS_N:
         layer: [320, 0]
@@ -497,7 +497,7 @@ LayerViews:
         hatch_pattern: lightly left-hatched
         color: "#ff80a8"
       WAFER:
-        layer: [99999, 0]
+        layer: [999, 0]
         hatch_pattern: lightly left-hatched
         color: "#ff80a8"
         visible: false

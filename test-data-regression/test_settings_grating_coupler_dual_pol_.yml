@@ -1,29 +1,17 @@
-function: grating_coupler_dual_pol
 info:
-  polarization: dual
+  polarization: te
   wavelength: 1.55
-module: gdsfactory.components.grating_coupler_dual_pol
-name: grating_coupler_dual_pol
+name: grating_coupler_dual_po_bb68872e
 settings:
   base_layer: WG
-  cross_section: xs_sc
-  length_taper: 150.0
+  cross_section: strip
+  length_taper: 150
   period_x: 0.58
   period_y: 0.58
-  polarization: dual
-  taper:
-    function: taper
-  unit_cell:
-    function: rectangle
-    module: gdsfactory.components.rectangle
-    settings:
-      centered: true
-      layer: SLAB150
-      port_type: null
-      size:
-      - 0.3
-      - 0.3
+  polarization: te
+  taper: taper
+  unit_cell: _unit_cell
   wavelength: 1.55
-  width_taper: 10.0
+  width_taper: 10
   x_span: 11
   y_span: 11

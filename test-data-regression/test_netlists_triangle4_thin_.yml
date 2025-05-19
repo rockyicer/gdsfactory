@@ -1,0 +1,33 @@
+instances:
+  triangle_gdsfactorypcom_c0ce9f96_0_0:
+    component: triangle
+    info: {}
+    settings:
+      layer: WG
+      x: 2
+      xtop: 0.2
+      y: 5
+      ybot: 0
+  triangle_gdsfactorypcom_c0ce9f96_0_m3000_M:
+    component: triangle
+    info: {}
+    settings:
+      layer: WG
+      x: 2
+      xtop: 0.2
+      y: 5
+      ybot: 0
+name: triangle2_gdsfactorypco_d3603737
+nets: []
+placements:
+  triangle_gdsfactorypcom_c0ce9f96_0_0:
+    mirror: false
+    rotation: 0
+    x: 0
+    y: 0
+  triangle_gdsfactorypcom_c0ce9f96_0_m3000_M:
+    mirror: true
+    rotation: 0
+    x: 0
+    y: -3
+ports: {}

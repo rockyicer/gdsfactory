@@ -1,37 +1,14 @@
-function: straight_heater_meander
-info: {}
-module: gdsfactory.components.straight_heater_meander
-name: straight_heater_meander
+info:
+  length: 662.761
+name: straight_heater_meander_a14bb5f1
 settings:
-  bend:
-    function: bend_euler
-  cross_section:
-    function: cross_section
-    module: gdsfactory.cross_section
-    settings:
-      radius: 10
-      radius_min: 5
-  extension_length: 15.0
-  heater_taper_length: 10.0
+  cross_section: strip
+  extension_length: 15
+  heater_taper_length: 10
   heater_width: 2.5
   layer_heater: HEATER
-  length: 300.0
-  n: null
-  port_orientation1: null
-  port_orientation2: null
-  radius: null
-  spacing: 2.0
-  straight:
-    function: straight
-  straight_widths:
-  - 0.8
-  - 0.9
-  - 0.8
-  taper:
-    function: taper_cross_section
-    module: gdsfactory.components.taper_cross_section
-    settings:
-      linear: true
-      npoints: 2
+  length: 300
+  n: 3
+  spacing: 2
   taper_length: 10
   via_stack: via_stack_heater_mtop

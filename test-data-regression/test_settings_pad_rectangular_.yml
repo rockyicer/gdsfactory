@@ -1,19 +1,18 @@
-function: pad
 info:
-  layer:
-  - 49
-  - 0
   size:
   - 80
   - 80
   xsize: 80
   ysize: 80
-module: gdsfactory.components.pad
-name: pad_sizepad_size
+name: pad_gdsfactorypcomponen_e43d6fec
 settings:
-  bbox_layers: null
-  bbox_offsets: null
   layer: MTOP
   port_inclusion: 0
-  port_orientation: null
+  port_orientation: 0
+  port_orientations:
+  - 180
+  - 90
+  - 0
+  - -90
+  port_type: pad
   size: pad_size

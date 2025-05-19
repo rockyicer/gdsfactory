@@ -8,7 +8,7 @@ The recommended place to ask a question is on [GitHub Discussions](https://githu
 
 ## Where to start?
 
-You can fork the repo, work on a feature, and then create a Pull Request to merge your feature into the `main` branch.
+You can fork the repo, work on a feature, and then [create a Pull Request](https://github.com/gdsfactory/gdsfactory/compare) to merge your feature into the `main` branch.
 This will benefit other project community members and make you famous :).
 
 Take a look at the [open issues](https://github.com/gdsfactory/gdsfactory/issues) to find issues that interest you. Some issues are particularly suited for new contributors by the [good first issue label](https://github.com/gdsfactory/gdsfactory/labels/good_first_issue) where you could start out. These are well documented issues, that do not require a deep understanding of the internals of gdsfactory.
@@ -31,26 +31,3 @@ The workflow is:
 ## Code of Conduct
 
 This project is a community effort, and everyone is welcome to contribute. Everyone within the community is expected to abide by our [code of conduct](https://github.com/gdsfactory/gdsfactory/blob/main/docs/code_of_conduct.md)
-
-
-## Changelog
-
-We use `towncrier` for tracking changes and generating a changelog.
-When making a pull request, we require that you add a towncrier entry along with the code changes.
-
-```bash
-towncrier create <PR number>.<change type>
-```
-
-Where change type can be `removed`, `deprecated`, `added`, `changed`, `fixed`
-
-Running this will create a file in the `.changelog.d` directory with a filename.
-
-Then before doing a new release we run
-
-
-```bash
-towncrier build --version=<version-number>
-```
-
-Where `<version-number>` is the expected version number of the release

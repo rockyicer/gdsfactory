@@ -1,15 +1,12 @@
-function: taper_strip_to_ridge
 info:
-  length: 20.0
-module: gdsfactory.components.taper
-name: taper_strip_to_ridge_74ffc972
+  length: 20
+name: taper_sc_nc_gdsfactoryp_5bac8726
 settings:
-  cross_section: xs_sc
-  layer_slab: WGN
+  cross_section: strip
+  layer_nitride: WGN
   layer_wg: WG
-  length: 20.0
-  use_slab_port: true
-  w_slab1: 0.15
-  w_slab2: 1.0
+  length: 20
   width1: 0.5
-  width2: 0.15
+  width2: 1
+  width_tip_nitride: 0.15
+  width_tip_silicon: 0.15

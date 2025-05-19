@@ -1,25 +1,24 @@
-function: mzm
 info: {}
-module: gdsfactory.components.mzm
-name: mzm
+name: mzi_gdsfactorypcomponen_d03ef107
 settings:
-  bend:
-    function: bend_euler
-  combiner: mmi1x2
-  cross_section: xs_sc
-  delta_length: 0.0
-  length_x: 500
-  length_y: 2.0
+  add_optical_ports_arms: false
+  auto_rename_ports: true
+  bend: bend_euler
+  cross_section: strip
+  delta_length: 10
+  length_x: 200
+  length_y: 2
   min_length: 0.01
   mirror_bot: false
   nbends: 2
-  phase_shifter:
-    function: straight_pin
+  port1: o1
+  port2: o2
   port_e0_combiner: o3
   port_e0_splitter: o3
   port_e1_combiner: o2
   port_e1_splitter: o2
   splitter: mmi1x2
-  straight:
-    function: straight
+  straight: straight
+  straight_x_bot: straight_pin
+  straight_x_top: straight_pin
   with_splitter: true

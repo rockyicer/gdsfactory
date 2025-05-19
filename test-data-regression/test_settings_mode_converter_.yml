@@ -1,21 +1,13 @@
-function: mode_converter
 info: {}
-module: gdsfactory.components.mode_converter
-name: mode_converter
+name: mode_converter_gdsfacto_10a30c65
 settings:
-  bend:
-    function: bend_euler_s
-    module: gdsfactory.components.bend_euler
-    settings:
-      angle: 45
-  coupler_straight_asymmetric:
-    function: coupler_straight_asymmetric
-  cross_section: xs_sc
+  bend: Fbend_s_Mgdsfactorypcomponentspbendspbend_s_SS25_3
+  coupler_straight_asymmetric: coupler_straight_asymmetric
+  cross_section: strip
   gap: 0.3
   length: 10
   mc_mm_width: 1
   mm_width: 1.2
   sm_width: 0.5
-  taper:
-    function: taper
+  taper: taper
   taper_length: 25

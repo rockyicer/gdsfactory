@@ -1,8 +1,6 @@
-function: loop_mirror
 info: {}
-module: gdsfactory.components.loop_mirror
-name: loop_mirror
+name: loop_mirror_gdsfactoryp_2fff599b
 settings:
   bend90: bend_euler
-  component:
-    function: mmi1x2
+  component: mmi1x2
+  cross_section: strip

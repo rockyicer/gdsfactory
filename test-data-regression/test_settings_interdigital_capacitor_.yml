@@ -1,10 +1,8 @@
-function: interdigital_capacitor
 info: {}
-module: gdsfactory.components.interdigital_capacitor
-name: interdigital_capacitor
+name: interdigital_capacitor__2ca89435
 settings:
-  finger_gap: 2.0
-  finger_length: 20.0
+  finger_gap: 2
+  finger_length: 20
   fingers: 4
   layer: WG
-  thickness: 5.0
+  thickness: 5

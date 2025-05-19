@@ -1,10 +1,7 @@
-function: regular_polygon
 info: {}
-module: gdsfactory.components.regular_polygon
-name: regular_polygon_sides8
+name: regular_polygon_gdsfact_e1fa2731
 settings:
   layer: WG
   port_type: placement
   side_length: 10
   sides: 8
-  snap_to_grid: true

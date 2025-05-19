@@ -1,16 +1,9 @@
-function: extend_ports
 info: {}
-module: gdsfactory.components.extension
-name: mmi1x2_extend_ports
+name: extend_ports_gdsfactory_2c372e90
 settings:
+  allow_width_mismatch: false
+  auto_taper: true
   centered: false
-  component:
-    function: mmi1x2
-  cross_section: null
-  extension: null
-  extension_port_names: null
-  length: 5.0
-  port1: null
-  port2: null
-  port_names: null
+  component: mmi1x2
+  length: 5
   port_type: optical

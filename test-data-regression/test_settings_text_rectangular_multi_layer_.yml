@@ -1,7 +1,5 @@
-function: text_rectangular_multi_layer
 info: {}
-module: gdsfactory.components.text_rectangular
-name: text_rectangular_multi_layer
+name: text_rectangular_multi__9efe36c2
 settings:
   layers:
   - WG
@@ -9,5 +7,4 @@ settings:
   - M2
   - MTOP
   text: abcd
-  text_factory:
-    function: text_rectangular
+  text_factory: text_rectangular

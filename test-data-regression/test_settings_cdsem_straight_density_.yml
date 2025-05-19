@@ -1,9 +1,7 @@
-function: cdsem_straight_density
 info: {}
-module: gdsfactory.components.cdsem_straight_density
-name: cdsem_straight_density
+name: cdsem_straight_density__28757169
 settings:
-  cross_section: xs_sc
+  cross_section: strip_no_ports
   gaps:
   - 0.3
   - 0.3
@@ -16,12 +14,9 @@ settings:
   - 0.3
   - 0.3
   label: ''
-  length: 420.0
-  text:
-    function: text_rectangular
-    module: gdsfactory.components.text_rectangular
-    settings:
-      size: 1
+  length: 420
+  text: text_rectangular
+  text_size: 1
   widths:
   - 0.3
   - 0.3

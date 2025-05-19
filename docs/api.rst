@@ -44,10 +44,9 @@ Classes and functions for construction and manipulation of geometric objects.
 
    CrossSection
    Transition
-   xsection
+   Section
    cross_section
    strip
-   strip_auto_widen
    heater_metal
    pin
    pn
@@ -57,7 +56,8 @@ Classes and functions for construction and manipulation of geometric objects.
    strip_heater_doped
    rib_heater_doped
    rib_heater_doped_via_stack
-
+   CrossSectionFactory
+   CrossSectionSpec
 
 .. currentmodule:: gdsfactory.path
 
@@ -69,25 +69,14 @@ Classes and functions for construction and manipulation of geometric objects.
    transition
 
 
-.. currentmodule:: gdsfactory.geometry
+.. currentmodule:: gdsfactory
 
-.. rubric:: geometry
+.. rubric:: boolean
 
 .. autosummary::
    :toctree: _autosummary/
 
    boolean
-   boolean_klayout
-   boolean_polygons
-   fillet
-   functions
-   invert
-   layer_priority
-   offset
-   outline
-   trim
-   union
-   xor_diff
 
 
 .. currentmodule:: gdsfactory
@@ -107,29 +96,30 @@ Classes and functions for construction and manipulation of geometric objects.
    :toctree: _autosummary/
 
    Anchor
-   CellSpec
-   ComponentFactory
    ComponentSpec
-   Component
-   CrossSection
-   CrossSectionFactory
-   CrossSectionSpec
    Layer
    LayerSpec
    LayerSpecs
-   LayerLevel
-   Label
    MaterialSpec
-   MultiCrossSectionAngleSpec
-   NetlistModel
    PathType
-   Route
-   RouteFactory
-   Routes
-   Section
    Step
-   StepAllAngle
+   MultiCrossSectionAngleSpec
 
+.. currentmodule:: gdsfactory.technology
+.. rubric:: technology
+
+.. autosummary::
+   :toctree: _autosummary/
+
+   AbstractLayer
+   DerivedLayer
+   LayerLevel
+   LayerMap
+   LayerStack
+   LayerView
+   LayerViews
+   LogicalLayer
+   lyp_to_dataclass
 
 *********************
 Pack
@@ -159,10 +149,3 @@ Netlist
    :toctree: _autosummary/
 
    get_netlist
-
-.. currentmodule:: gdsfactory.get_netlist_flat
-
-.. autosummary::
-   :toctree: _autosummary/
-
-   get_netlist_flat

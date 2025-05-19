@@ -1,19 +1,15 @@
-function: die
 info: {}
-module: gdsfactory.components.die
-name: die
+name: die_gdsfactorypcomponen_96550820
 settings:
   bbox_layer: FLOORPLAN
   die_name: chip99
   draw_corners: false
   layer: FLOORPLAN
-  layers: null
   size:
-  - 10000.0
-  - 10000.0
-  street_length: 1000.0
-  street_width: 100.0
-  text:
-    function: text
+  - 10000
+  - 10000
+  street_length: 1000
+  street_width: 100
+  text: text
   text_location: SW
-  text_size: 100.0
+  text_size: 100

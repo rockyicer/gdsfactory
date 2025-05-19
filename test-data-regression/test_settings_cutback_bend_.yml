@@ -1,13 +1,9 @@
-function: cutback_bend
 info:
-  n_bends: 68
-module: gdsfactory.components.cutback_bend
-name: cutback_bend
+  components: 68
+name: cutback_bend_gdsfactory_73a3f7dd
 settings:
   cols: 5
-  component:
-    function: bend_euler
+  component: bend_euler
   rows: 6
-  straight:
-    function: straight
-  straight_length: 5.0
+  straight: straight
+  straight_length: 5

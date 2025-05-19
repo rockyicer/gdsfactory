@@ -1,7 +1,5 @@
-function: mzi_lattice_mmi
 info: {}
-module: gdsfactory.components.mzi_lattice
-name: mzi_lattice_mmi
+name: mzi_lattice_mmi_gdsfact_4fc84500
 settings:
   coupler_gaps_mmis:
   - 0.25
@@ -10,8 +8,8 @@ settings:
   - 5.5
   - 5.5
   coupler_lengths_tapers:
-  - 10.0
-  - 10.0
+  - 10
+  - 10
   coupler_widths:
   - null
   - null
@@ -19,27 +17,18 @@ settings:
   - 2.5
   - 2.5
   coupler_widths_tapers:
-  - 1.0
-  - 1.0
+  - 1
+  - 1
   cross_sections_mmis:
-  - xs_sc
-  - xs_sc
+  - strip
+  - strip
   delta_lengths:
-  - 10.0
-  mzi:
-    function: mzi
-    module: gdsfactory.components.mzi
-    settings:
-      combiner:
-        function: mmi2x2
-      port_e0_combiner: o4
-      port_e0_splitter: o4
-      port_e1_combiner: o3
-      port_e1_splitter: o3
-      splitter:
-        function: mmi2x2
-  splitter:
-    function: mmi2x2
+  - 10
+  mzi: mzi2x2_2x2
+  splitter: mmi2x2
+  straight_functions_mmis:
+  - straight
+  - straight
   taper_functions_mmis:
-  - function: taper
-  - function: taper
+  - taper
+  - taper

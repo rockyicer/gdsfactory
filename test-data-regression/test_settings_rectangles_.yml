@@ -1,15 +1,10 @@
-function: rectangles
 info: {}
-module: gdsfactory.components.rectangle
-name: rectangles
+name: rectangles_gdsfactorypc_6806a983
 settings:
   centered: true
   layers:
   - WG
   - SLAB150
-  offsets:
-  - 0
-  - 1
   size:
-  - 4.0
-  - 2.0
+  - 4
+  - 2

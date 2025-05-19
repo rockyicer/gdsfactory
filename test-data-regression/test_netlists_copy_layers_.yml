@@ -1,0 +1,35 @@
+instances:
+  cross_gdsfactorypcompon_2c767e3f_0_0:
+    component: cross
+    info: {}
+    settings:
+      layer:
+      - 2
+      - 0
+      length: 10
+      port_type: null
+      width: 3
+  cross_gdsfactorypcompon_865384e9_0_0:
+    component: cross
+    info: {}
+    settings:
+      layer:
+      - 1
+      - 0
+      length: 10
+      port_type: null
+      width: 3
+name: copy_layers_gdsfactoryp_c7a2a834
+nets: []
+placements:
+  cross_gdsfactorypcompon_2c767e3f_0_0:
+    mirror: false
+    rotation: 0
+    x: 0
+    y: 0
+  cross_gdsfactorypcompon_865384e9_0_0:
+    mirror: false
+    rotation: 0
+    x: 0
+    y: 0
+ports: {}

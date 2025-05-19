@@ -1,10 +1,7 @@
-function: copy_layers
 info: {}
-module: gdsfactory.components.copy_layers
-name: cross_copy_layers
+name: copy_layers_gdsfactoryp_c7a2a834
 settings:
-  factory:
-    function: cross
+  factory: cross
   layers:
   - - 1
     - 0

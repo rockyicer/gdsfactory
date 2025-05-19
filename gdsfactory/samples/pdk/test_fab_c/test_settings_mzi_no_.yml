@@ -1,58 +1,22 @@
-function: mzi
 info: {}
-module: gdsfactory.components.mzi
-name: mzi_4d4fe19b
+name: mzi_DL10_LY2_LX0p1_Bben_274eb046
 settings:
-  add_electrical_ports_bot: true
   add_optical_ports_arms: false
-  bend:
-    function: bend_euler_no
-  combiner: null
-  cross_section:
-    bbox_layers:
-    - - 36
-      - 0
-    bbox_offsets:
-    - 3.0
-    components_along_path: []
-    radius: 10.0
-    radius_min: 5.0
-    sections:
-    - hidden: false
-      insets: null
-      layer:
-      - 34
-      - 0
-      name: _default
-      offset: 0.0
-      offset_function: null
-      port_names:
-      - o1
-      - o2
-      port_types:
-      - optical
-      - optical
-      simplify: null
-      width: 0.9
-      width_function: null
-  cross_section_x_bot: null
-  cross_section_x_top: null
-  delta_length: 10.0
-  extend_ports_straight_x: null
+  auto_rename_ports: true
+  bend: bend_euler_no
+  cross_section: strip_no
+  delta_length: 10
   length_x: 0.1
-  length_y: 2.0
+  length_y: 2
   min_length: 0.01
   mirror_bot: false
   nbends: 2
+  port1: o1
+  port2: o2
   port_e0_combiner: o3
   port_e0_splitter: o3
   port_e1_combiner: o2
   port_e1_splitter: o2
-  splitter:
-    function: mmi1x2_no
-  straight:
-    function: straight_no
-  straight_x_bot: null
-  straight_x_top: null
-  straight_y: null
+  splitter: mmi1x2_no
+  straight: straight_no
   with_splitter: true

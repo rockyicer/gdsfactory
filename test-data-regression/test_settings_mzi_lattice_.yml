@@ -1,27 +1,13 @@
-function: mzi_lattice
 info: {}
-module: gdsfactory.components.mzi_lattice
-name: mzi_lattice
+name: mzi_lattice_gdsfactoryp_ffe6cf26
 settings:
   coupler_gaps:
   - 0.2
   - 0.3
   coupler_lengths:
-  - 10.0
-  - 20.0
+  - 10
+  - 20
   delta_lengths:
-  - 10.0
-  mzi:
-    function: mzi
-    module: gdsfactory.components.mzi
-    settings:
-      combiner:
-        function: coupler
-      port_e0_combiner: o4
-      port_e0_splitter: o4
-      port_e1_combiner: o3
-      port_e1_splitter: o3
-      splitter:
-        function: coupler
-  splitter:
-    function: coupler
+  - 10
+  mzi: mzi_coupler
+  splitter: coupler

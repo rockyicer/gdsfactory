@@ -1,38 +1,15 @@
-function: edge_coupler_array_with_loopback
 info: {}
-module: gdsfactory.components.edge_coupler_array
-name: edge_coupler_array_with_loopback
+name: edge_coupler_array_with_76837e7b
 settings:
-  alignment_port: o1
-  angle: 0
-  bend:
-    function: bend_euler
-  cross_section: xs_sc
-  edge_coupler:
-    function: taper
-    module: gdsfactory.components.taper
-    settings:
-      length: 100
-      port_types:
-      - optical
-      - edge_te
-      width2: 0.2
-      with_two_ports: true
-  extension_length: 1.0
+  cross_section: strip
+  edge_coupler: edge_coupler_silicon
+  extension_length: 1
   n: 8
-  pitch: 127.0
-  place_x_by_port: true
+  pitch: 127
   radius: 30
-  right_loopback: true
-  space_y_by_port: false
-  straight:
-    function: straight
-  taper: null
-  text:
-    function: text_rectangular
-  text_mirror: false
+  text: text_rectangular
   text_offset:
   - 0
-  - 0
+  - 10
   text_rotation: 0
   x_reflection: false

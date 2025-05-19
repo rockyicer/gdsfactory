@@ -1,16 +1,14 @@
-function: dbr_tapered
 info: {}
-module: gdsfactory.components.dbr_tapered
-name: dbr_tapered
+name: dbr_tapered_gdsfactoryp_8f033274
 settings:
-  cross_section: xs_sc
+  cross_section: strip
   dc: 0.5
   fin_size:
   - 0.2
   - 0.05
   fins: false
-  length: 10.0
+  length: 10
   period: 0.85
-  taper_length: 20.0
+  taper_length: 20
   w1: 0.4
-  w2: 1.0
+  w2: 1

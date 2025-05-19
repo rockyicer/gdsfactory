@@ -13,14 +13,20 @@ notebooks/demo.png
 notebooks/demo.yml
 notebooks/demo_jinja_loops.pic.yml
 notebooks/schematic.yaml
+uv.lock
+openrouter/
+.aider.*
 
 
 # C extensions
 *.so
+*.gv
 *.l2n
 test_manifest.csv
 gdsfactory/plugins/kweb/gds_files/
 profile.html
+docs/components.rst
+
 *.properties
 *.sqlite3
 *.hdf5
@@ -32,6 +38,9 @@ profile.html
 *.svg
 *.db
 *.tar
+.conda
+.devcontainer
+
 gfconfig.yml
 sim_ref.yaml
 yarn.lock
@@ -175,7 +184,6 @@ Icon?
 
 *.tar.gz
 *.gds
-*.json
 *.zip
 *.rdb
 *.sty
@@ -327,3 +335,4 @@ gdsfactory/plugins/pso/wrk_dir/
 
 # keep reference gds files
 !tests/gds/*.gds
+.vscode/

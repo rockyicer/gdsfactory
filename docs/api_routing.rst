@@ -3,71 +3,57 @@ Routing API
 
 .. currentmodule:: gdsfactory.routing
 
-single route
+route_single
 -----------------
 
 .. autosummary::
    :toctree: _autosummary/
 
-   get_route
-   get_route_from_steps
+   route_single
+   route_single_electrical
    route_quad
    route_sharp
 
 
-bundle route
+route_bundle
 ---------------------------------------------------------------------------------------------------
 
 When you need to route groups of ports together without them crossing each other You can use a bundle/river/bus router.
-`get bundle` is the generic river bundle bus routing function that will call different function depending on
+`route_bundle` is the generic river bundle bus routing function that will call different function depending on
 the port orientation. Get bundle acts as a high level entry point. Based on the angle
 configurations of the banks of ports, it decides which sub-routine to call:
 
- - `get_bundle_same_axis`, banks or ports facing each other (but with arbitrary and varying pitch
-   on each side)
- - `get_bundle_corner`, banks of ports with 90Deg / 270Deg between them (again pitch is flexible on
-   both sides)
- - `get_bundle_udirect`, banks of ports with direct U-turns
- - `get_bundle_uindirect`, banks of ports with indirect U-turns
 
 .. autosummary::
    :toctree: _autosummary/
 
-   get_bundle
+   route_bundle
 
 
 
-get_bundle_from_steps
+route_bundle_all_angle
 ---------------------------------------------------------------------------------------------------
 
 .. autosummary::
    :toctree: _autosummary/
 
-   get_bundle_from_steps
-   get_bundle_path_length_match
-
-
-get_bundle_all_angle
----------------------------------------------------------------------------------------------------
-
-.. autosummary::
-   :toctree: _autosummary/
-
-   get_bundle_all_angle
+   route_bundle_all_angle
 
 
 
 route_ports_to_side
 ---------------------------------------------------------------------------------------------------
 
-For now `get_bundle` is not smart enough to decide whether it should call `route_ports_to_side`.
+For now `route_bundle` is not smart enough to decide whether it should call `route_ports_to_side`.
 So you either need to connect your ports to face in one direction first, or to
-use `route_ports_to_side` before calling `get_bundle`
+use `route_ports_to_side` before calling `route_bundle`
 
 .. autosummary::
    :toctree: _autosummary/
 
    route_ports_to_side
+   route_ports_to_x
+   route_ports_to_y
    route_south
 
 
@@ -77,14 +63,10 @@ fanout
 .. autosummary::
    :toctree: _autosummary/
 
-   get_route_sbend
-   get_bundle_sbend
    fanout2x2
-   fanout_component
-   fanout_ports
 
 
-add_fiber_array / add_fiber_single
+add_fiber_array
 ---------------------------------------------------------------------------------------------------
 
 In cases where individual components have to be tested, you can generate the array of optical I/O and connect them to the component.
@@ -96,7 +78,6 @@ You can connect the waveguides to a 127um pitch fiber array or to individual fib
    :toctree: _autosummary/
 
    add_fiber_array.add_fiber_array
-   add_fiber_single.add_fiber_single
 
 
 add_pads

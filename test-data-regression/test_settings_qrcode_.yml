@@ -1,7 +1,5 @@
-function: qrcode
 info: {}
-module: gdsfactory.components.version_stamp
-name: qrcode
+name: qrcode_gdsfactorypcompo_0a68db17
 settings:
   data: mask01
   layer: WG

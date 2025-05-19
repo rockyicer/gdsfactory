@@ -108,13 +108,13 @@ class Lithography(ProcessStep):
     """
 
     layer: Layer | None = None
-    layers_or: list | None = None
-    layers_diff: list | None = None
-    layers_and: list | None = None
-    layers_xor: list | None = None
+    layers_or: list[Layer] | None = None
+    layers_diff: list[Layer] | None = None
+    layers_and: list[Layer] | None = None
+    layers_xor: list[Layer] | None = None
     resist_thickness: float | None = 0
     positive_tone: bool = True
-    planarization_height: float = None
+    planarization_height: float | None = None
 
 
 @dataclass(kw_only=True)
@@ -138,7 +138,7 @@ class Grow(Lithography):
     thickness: float
     material: str
     type: str
-    rate: float = None
+    rate: float | None = None
 
 
 @dataclass(kw_only=True)
@@ -158,15 +158,13 @@ class Etch(Lithography):
         thickness (float): thickness to remove [nm]
         type (str): of etch (isotropic, anisotropic, etc.)
         rate (float): of removal [nm/s]
-        sidewall_angle (float): angle of sidewall [deg]
 
     """
 
     material: str
     depth: float
     type: str = "anisotropic"
-    rate: float = None
-    sidewall_angle: float = 0
+    rate: float | None = None
 
 
 @dataclass(kw_only=True)
@@ -192,9 +190,9 @@ class ImplantPhysical(Lithography):
     ion: str
     energy: float
     dose: float
-    tilt: float = None
-    twist: float = None
-    rotation: float = None
+    tilt: float | None = None
+    twist: float | None = None
+    rotation: float | None = None
 
 
 @dataclass(kw_only=True)
@@ -220,8 +218,8 @@ class ImplantGaussian(Lithography):
     ion: str
     peak_conc: float
     range: float
-    vertical_straggle: float = None
-    lateral_straggle: float = None
+    vertical_straggle: float | None = None
+    lateral_straggle: float | None = None
 
 
 @dataclass(kw_only=True)
@@ -246,7 +244,7 @@ class DopingConstant(Lithography):
     ion: str
     peak_conc: float
     zmin: float
-    zmax: float = None
+    zmax: float | None = None
     into_materials: list[str]
 
 

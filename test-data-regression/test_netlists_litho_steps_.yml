@@ -1,0 +1,379 @@
+instances:
+  rectangle_gdsfactorypco_08d62a52_36000_0:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 8
+      - 50
+  rectangle_gdsfactorypco_186a707b_0_m50000:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 10
+      - 50
+  rectangle_gdsfactorypco_186a707b_26000_m50000:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 10
+      - 50
+  rectangle_gdsfactorypco_186a707b_44000_m50000:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 10
+      - 50
+  rectangle_gdsfactorypco_186a707b_58000_m50000:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 10
+      - 50
+  rectangle_gdsfactorypco_186a707b_70000_m50000:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 10
+      - 50
+  rectangle_gdsfactorypco_186a707b_81000_m50000:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 10
+      - 50
+  rectangle_gdsfactorypco_437902f0_54000_0:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 4
+      - 50
+  rectangle_gdsfactorypco_439ee0ed_80000_0:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 1
+      - 50
+  rectangle_gdsfactorypco_504d1381_68000_0:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 2
+      - 50
+  rectangle_gdsfactorypco_91819f0b_10000_0:
+    component: rectangle
+    info: {}
+    settings:
+      centered: false
+      layer: WG
+      port_orientations:
+      - 180
+      - 90
+      - 0
+      - -90
+      port_type: electrical
+      size:
+      - 16
+      - 50
+  text_gdsfactorypcompone_563de933_m5000_0_A90:
+    component: text
+    info: {}
+    settings:
+      justify: center
+      layer: WG
+      position:
+      - 0
+      - 0
+      size: 50
+      text: '16.0'
+name: litho_steps_gdsfactoryp_28bdcaf2
+nets: []
+placements:
+  rectangle_gdsfactorypco_08d62a52_36000_0:
+    mirror: false
+    rotation: 0
+    x: 36
+    y: 0
+  rectangle_gdsfactorypco_186a707b_0_m50000:
+    mirror: false
+    rotation: 0
+    x: 0
+    y: -50
+  rectangle_gdsfactorypco_186a707b_26000_m50000:
+    mirror: false
+    rotation: 0
+    x: 26
+    y: -50
+  rectangle_gdsfactorypco_186a707b_44000_m50000:
+    mirror: false
+    rotation: 0
+    x: 44
+    y: -50
+  rectangle_gdsfactorypco_186a707b_58000_m50000:
+    mirror: false
+    rotation: 0
+    x: 58
+    y: -50
+  rectangle_gdsfactorypco_186a707b_70000_m50000:
+    mirror: false
+    rotation: 0
+    x: 70
+    y: -50
+  rectangle_gdsfactorypco_186a707b_81000_m50000:
+    mirror: false
+    rotation: 0
+    x: 81
+    y: -50
+  rectangle_gdsfactorypco_437902f0_54000_0:
+    mirror: false
+    rotation: 0
+    x: 54
+    y: 0
+  rectangle_gdsfactorypco_439ee0ed_80000_0:
+    mirror: false
+    rotation: 0
+    x: 80
+    y: 0
+  rectangle_gdsfactorypco_504d1381_68000_0:
+    mirror: false
+    rotation: 0
+    x: 68
+    y: 0
+  rectangle_gdsfactorypco_91819f0b_10000_0:
+    mirror: false
+    rotation: 0
+    x: 10
+    y: 0
+  text_gdsfactorypcompone_563de933_m5000_0_A90:
+    mirror: false
+    rotation: 90
+    x: -5
+    y: 0
+ports: {}
+warnings:
+  electrical:
+    unconnected_ports:
+    - message: 44 unconnected electrical ports!
+      ports:
+      - rectangle_gdsfactorypco_186a707b_0_m50000,e1
+      - rectangle_gdsfactorypco_186a707b_0_m50000,e2
+      - rectangle_gdsfactorypco_186a707b_0_m50000,e3
+      - rectangle_gdsfactorypco_186a707b_0_m50000,e4
+      - rectangle_gdsfactorypco_186a707b_26000_m50000,e1
+      - rectangle_gdsfactorypco_186a707b_26000_m50000,e2
+      - rectangle_gdsfactorypco_186a707b_26000_m50000,e3
+      - rectangle_gdsfactorypco_186a707b_26000_m50000,e4
+      - rectangle_gdsfactorypco_91819f0b_10000_0,e1
+      - rectangle_gdsfactorypco_91819f0b_10000_0,e2
+      - rectangle_gdsfactorypco_91819f0b_10000_0,e3
+      - rectangle_gdsfactorypco_91819f0b_10000_0,e4
+      - rectangle_gdsfactorypco_186a707b_44000_m50000,e1
+      - rectangle_gdsfactorypco_186a707b_44000_m50000,e2
+      - rectangle_gdsfactorypco_186a707b_44000_m50000,e3
+      - rectangle_gdsfactorypco_186a707b_44000_m50000,e4
+      - rectangle_gdsfactorypco_08d62a52_36000_0,e1
+      - rectangle_gdsfactorypco_08d62a52_36000_0,e2
+      - rectangle_gdsfactorypco_08d62a52_36000_0,e3
+      - rectangle_gdsfactorypco_08d62a52_36000_0,e4
+      - rectangle_gdsfactorypco_186a707b_58000_m50000,e1
+      - rectangle_gdsfactorypco_186a707b_58000_m50000,e2
+      - rectangle_gdsfactorypco_186a707b_58000_m50000,e3
+      - rectangle_gdsfactorypco_186a707b_58000_m50000,e4
+      - rectangle_gdsfactorypco_437902f0_54000_0,e1
+      - rectangle_gdsfactorypco_437902f0_54000_0,e2
+      - rectangle_gdsfactorypco_437902f0_54000_0,e3
+      - rectangle_gdsfactorypco_437902f0_54000_0,e4
+      - rectangle_gdsfactorypco_186a707b_70000_m50000,e1
+      - rectangle_gdsfactorypco_186a707b_70000_m50000,e2
+      - rectangle_gdsfactorypco_186a707b_70000_m50000,e3
+      - rectangle_gdsfactorypco_186a707b_70000_m50000,e4
+      - rectangle_gdsfactorypco_504d1381_68000_0,e1
+      - rectangle_gdsfactorypco_504d1381_68000_0,e2
+      - rectangle_gdsfactorypco_504d1381_68000_0,e3
+      - rectangle_gdsfactorypco_504d1381_68000_0,e4
+      - rectangle_gdsfactorypco_186a707b_81000_m50000,e1
+      - rectangle_gdsfactorypco_186a707b_81000_m50000,e2
+      - rectangle_gdsfactorypco_186a707b_81000_m50000,e3
+      - rectangle_gdsfactorypco_186a707b_81000_m50000,e4
+      - rectangle_gdsfactorypco_439ee0ed_80000_0,e1
+      - rectangle_gdsfactorypco_439ee0ed_80000_0,e2
+      - rectangle_gdsfactorypco_439ee0ed_80000_0,e3
+      - rectangle_gdsfactorypco_439ee0ed_80000_0,e4
+      values:
+      - - 0
+        - -25
+      - - 5
+        - 0
+      - - 10
+        - -25
+      - - 5
+        - -50
+      - - 26
+        - -25
+      - - 31
+        - 0
+      - - 36
+        - -25
+      - - 31
+        - -50
+      - - 10
+        - 25
+      - - 18
+        - 50
+      - - 26
+        - 25
+      - - 18
+        - 0
+      - - 44
+        - -25
+      - - 49
+        - 0
+      - - 54
+        - -25
+      - - 49
+        - -50
+      - - 36
+        - 25
+      - - 40
+        - 50
+      - - 44
+        - 25
+      - - 40
+        - 0
+      - - 58
+        - -25
+      - - 63
+        - 0
+      - - 68
+        - -25
+      - - 63
+        - -50
+      - - 54
+        - 25
+      - - 56
+        - 50
+      - - 58
+        - 25
+      - - 56
+        - 0
+      - - 70
+        - -25
+      - - 75
+        - 0
+      - - 80
+        - -25
+      - - 75
+        - -50
+      - - 68
+        - 25
+      - - 69
+        - 50
+      - - 70
+        - 25
+      - - 69
+        - 0
+      - - 81
+        - -25
+      - - 86
+        - 0
+      - - 91
+        - -25
+      - - 86
+        - -50
+      - - 80
+        - 25
+      - - 80.5
+        - 50
+      - - 81
+        - 25
+      - - 80.5
+        - 0

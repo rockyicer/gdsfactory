@@ -1,11 +1,7 @@
-function: coupler_asymmetric
 info: {}
-module: gdsfactory.components.coupler_asymmetric
-name: coupler_asymmetric
+name: coupler_asymmetric_gdsf_f4854d7b
 settings:
-  bend:
-    function: bend_s
-  cross_section: xs_sc
-  dx: 10.0
+  cross_section: strip
+  dx: 10
   dy: 2.5
   gap: 0.234

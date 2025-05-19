@@ -1,127 +1,137 @@
-"""You can import gdsfactory.as gf.
-
-functions:
-    - import_gds(): returns a Component from a GDS
-
-classes:
-
-    - Component
-    - Port
-    - TECH
-
-modules:
-
-    - c: components
-    - routing
-"""
-
-# isort: skip_file
-from __future__ import annotations
-from functools import partial
-from toolz import compose
-from gdsfactory.component_layout import Group
-from gdsfactory.path import Path
-
+"""Main module for gdsfactory."""
 
 # NOTE: import order matters. Only change the order if you know what you are doing
-from gdsfactory.component import Component, ComponentReference
-from gdsfactory.config import CONF, call_if_func, PATH, logger
-from gdsfactory.port import Port
-from gdsfactory.cell import (
-    cell,
-    cell_without_validator,
-    cell_with_child,
-    remove_from_cache,
-    container,
-    component_with_function,
-)
-from gdsfactory.cell import clear_cache
-from gdsfactory.show import show
-from gdsfactory.read.import_gds import import_gds
-from gdsfactory.cross_section import CrossSection, Section
-from gdsfactory.component_layout import Label
-from gdsfactory.polygon import Polygon
-from gdsfactory.difftest import difftest, diff
+# isort: skip_file
 
-from gdsfactory import decorators
+from __future__ import annotations
+import sys
+import warnings
+from functools import partial
+from toolz import compose
+from aenum import constant
+
+import kfactory as kf
+from kfactory import LayerEnum, show, Instance
+from kfactory.layout import kcl
+from kfactory import logger
+import klayout.db as kdb
+
+from gdsfactory._cell import cell, vcell, cell_with_module_name
+from gdsfactory.path import Path
+from gdsfactory.component import (
+    Component,
+    ComponentBase,
+    ComponentAllAngle,
+    ComponentReference,
+    container,
+)
+from gdsfactory.config import CONF, PATH, __version__
+from gdsfactory.port import Port
+from gdsfactory.read.import_gds import import_gds
+from gdsfactory.cross_section import (
+    ComponentAlongPath,
+    CrossSection,
+    Section,
+    xsection,
+    get_cross_sections,
+)
+from gdsfactory.difftest import difftest, diff
+from gdsfactory.boolean import boolean
+
 from gdsfactory import cross_section
-from gdsfactory import labels
-from gdsfactory import asserts
+from gdsfactory import port
 from gdsfactory import components
-from gdsfactory import routing
+from gdsfactory import containers
+from gdsfactory import labels
 from gdsfactory import typings
 from gdsfactory import path
 from gdsfactory import snap
 from gdsfactory import read
-from gdsfactory import add_termination
-from gdsfactory import functions
-from gdsfactory import geometry
 from gdsfactory import add_ports
 from gdsfactory import write_cells
 from gdsfactory import add_pins
 from gdsfactory import technology
-from gdsfactory import fill
+from gdsfactory import routing
+from gdsfactory import export
+from gdsfactory import functions
 
-from gdsfactory.add_tapers import add_tapers
 from gdsfactory.add_padding import (
     add_padding,
     add_padding_container,
     get_padding_points,
+    add_padding_to_size,
 )
-from gdsfactory.fill import fill_rectangle
 from gdsfactory.pack import pack
-from gdsfactory.grid import grid, grid_with_text, grid_with_component_name
 from gdsfactory.pdk import (
     Pdk,
     get_component,
     get_cross_section,
     get_layer,
+    get_layer_tuple,
+    get_layer_name,
     get_active_pdk,
     get_cell,
     get_constant,
 )
 from gdsfactory.get_factories import get_cells
-from gdsfactory.cross_section import get_cross_sections
+from gdsfactory.grid import grid, grid_with_text
 
 c = components
+Region = kdb.Region
+
+# Check Python version and issue a warning if using Python 3.10
+if sys.version_info[:2] == (3, 10):
+    warnings.warn(
+        "Support for Python 3.10 has been dropped. Please upgrade to Python 3.11 or later "
+        "to continue using the latest features and improvements. "
+        "To get the latest gdsfactory, upgrading your Python version is required.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+
+
+def clear_cache(kcl: kf.KCLayout = kf.kcl) -> None:
+    """Clears the whole layout object cache for the default layout."""
+    kcl.clear_kcells()
 
 
 __all__ = (
     "CONF",
+    "PATH",
     "Component",
+    "ComponentAllAngle",
+    "ComponentAlongPath",
+    "ComponentBase",
     "ComponentReference",
     "CrossSection",
-    "Group",
-    "Label",
+    "Instance",
+    "LayerEnum",
     "Path",
     "Pdk",
     "Port",
+    "Region",
     "Section",
+    "__version__",
     "add_padding",
     "add_padding_container",
+    "add_padding_to_size",
     "add_pins",
     "add_ports",
-    "add_tapers",
-    "add_termination",
-    "asserts",
+    "boolean",
     "c",
-    "call_if_func",
     "cell",
-    "cell_without_validator",
-    "cell_with_child",
-    "container",
+    "cell_with_module_name",
     "clear_cache",
     "components",
-    "component_with_function",
     "compose",
+    "constant",
+    "container",
+    "containers",
     "cross_section",
-    "decorators",
     "diff",
     "difftest",
-    "fill",
-    "fill_rectangle",
+    "export",
     "functions",
-    "geometry",
     "get_active_pdk",
     "get_cell",
     "get_cells",
@@ -130,24 +140,28 @@ __all__ = (
     "get_cross_section",
     "get_cross_sections",
     "get_layer",
+    "get_layer_name",
+    "get_layer_tuple",
     "get_padding_points",
     "grid",
     "grid_with_text",
-    "grid_with_component_name",
     "import_gds",
+    "kcl",
+    "kdb",
+    "kf",
     "labels",
     "logger",
     "pack",
     "partial",
-    "Polygon",
     "path",
+    "port",
     "read",
     "routing",
     "show",
     "snap",
-    "typings",
     "technology",
+    "typings",
+    "vcell",
     "write_cells",
-    "remove_from_cache",
-    "PATH",
+    "xsection",
 )

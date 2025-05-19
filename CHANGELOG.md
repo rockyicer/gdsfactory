@@ -1,7 +1,1021 @@
 # [Changelog](https://keepachangelog.com/en/1.0.0/)
-## [Unreleased](https://github.com/gdsfactory/gdsfactory/compare/v7.26.1...main)
+## [Unreleased](https://github.com/gdsfactory/gdsfactory/compare/v9.5.9...main)
 
 <!-- towncrier release notes start -->
+
+## [9.5.10](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.10) - 2025-05-15
+
+No significant changes.
+
+
+## [9.5.9](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.9) - 2025-05-11
+
+- Gc array [#3820](https://github.com/gdsfactory/gdsfactory/pull/3820)
+- make grating_coupler optional in die_with_pads [#3818](https://github.com/gdsfactory/gdsfactory/pull/3818)
+
+## [9.5.8](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.8) - 2025-05-10
+
+- fix route_single [#3815](https://github.com/gdsfactory/gdsfactory/pull/3815)
+
+
+## [9.5.7](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.7) - 2025-05-04
+
+- Add `auto_taper_pads` flag to route_fiber_array_pads_north [#3807](https://github.com/gdsfactory/gdsfactory/pull/3807)
+
+## [9.5.6](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.6) - 2025-05-01
+
+- use cross_section in route_bundle for electrical cases [#3804](https://github.com/gdsfactory/gdsfactory/pull/3804)
+- better readme [#3805](https://github.com/gdsfactory/gdsfactory/pull/3805)
+- Remove klayout dependency [#3803](https://github.com/gdsfactory/gdsfactory/pull/3803)
+
+## [9.5.5](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.5) - 2025-04-30
+
+- remove lost plot [#3799](https://github.com/gdsfactory/gdsfactory/pull/3799)
+- Add warning stacklevels [#3800](https://github.com/gdsfactory/gdsfactory/pull/3800)
+- pin klayout==0.30.0 [#3802](https://github.com/gdsfactory/gdsfactory/pull/3802)
+- bump kfactory to 1.5.2 at least [#3801](https://github.com/gdsfactory/gdsfactory/pull/3801)
+
+
+## [9.5.4](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.4) - 2025-04-28
+
+- Fix get netlist [#3797](https://github.com/gdsfactory/gdsfactory/pull/3797)
+
+## [9.5.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.3) - 2025-04-27
+
+- bump kfactory to 1.5 [#3791](https://github.com/gdsfactory/gdsfactory/pull/3791)
+
+
+## [9.5.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.2) - 2025-04-23
+
+- Improve sbend metal [#3788](https://github.com/gdsfactory/gdsfactory/pull/3788)
+
+
+## [9.5.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.1) - 2025-04-22
+
+- better error message [#3785](https://github.com/gdsfactory/gdsfactory/pull/3785)
+
+
+## [9.5.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.5.0) - 2025-04-17
+
+- enable sbend routing in schematic [#3782](https://github.com/gdsfactory/gdsfactory/pull/3782)
+
+## [9.4.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.4.0) - 2025-04-13
+
+- add module name to generic pdk cell Decorator [#3778](https://github.com/gdsfactory/gdsfactory/pull/3778)
+- Fix text rectangular [#3777](https://github.com/gdsfactory/gdsfactory/pull/3777)
+- fix path rotate [#3772](https://github.com/gdsfactory/gdsfactory/pull/3772)
+- move mypy to cicd [#3773](https://github.com/gdsfactory/gdsfactory/pull/3773)
+
+## [9.3.5](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.3.5) - 2025-04-09
+
+- fix self-intersecting path [#3768](https://github.com/gdsfactory/gdsfactory/pull/3768)
+
+## [9.3.4](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.3.4) - 2025-04-09
+
+- fix tests [#3766](https://github.com/gdsfactory/gdsfactory/pull/3766)
+- fix path smooth [#3765](https://github.com/gdsfactory/gdsfactory/pull/3765)
+- avoid double pdk activation [#3762](https://github.com/gdsfactory/gdsfactory/pull/3762)
+- Update kfactory 1.4.1 [#3761](https://github.com/gdsfactory/gdsfactory/pull/3761)
+
+## [9.3.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.3.3) - 2025-04-07
+
+- fix mypy [#3759](https://github.com/gdsfactory/gdsfactory/pull/3759)
+- allow_none_radius [#3756](https://github.com/gdsfactory/gdsfactory/pull/3756)
+- Expose insets and add_ports_top [#3755](https://github.com/gdsfactory/gdsfactory/pull/3755)
+- deps: update rich requirement from <14 to <15 [#3752](https://github.com/gdsfactory/gdsfactory/pull/3752)
+
+## [9.3.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.3.2) - 2025-03-27
+
+- Add coupler symmetric [#3747](https://github.com/gdsfactory/gdsfactory/pull/3747)
+- change_get_netlist_defaults [#3749](https://github.com/gdsfactory/gdsfactory/pull/3749)
+- bump kfactory to 1.3 [#3750](https://github.com/gdsfactory/gdsfactory/pull/3750)
+
+## [9.3.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.3.1) - 2025-03-24
+
+- Fix Naming Error: It's "Dubins" Not "Dubin". [#3740](https://github.com/gdsfactory/gdsfactory/pull/3740)
+- bump kfactory [#3743](https://github.com/gdsfactory/gdsfactory/pull/3743)
+- add kfactory cli build command [#3742](https://github.com/gdsfactory/gdsfactory/pull/3742)
+
+## [9.3.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.3.0) - 2025-03-20
+
+- Add get region [#3739](https://github.com/gdsfactory/gdsfactory/pull/3739)
+- fix via and add smooth to get_polygons [#3738](https://github.com/gdsfactory/gdsfactory/pull/3738)
+- require kfactory 1.2.4 for bug fixes [#3737](https://github.com/gdsfactory/gdsfactory/pull/3737)
+- rename .dx to .x and .dy to y [#3736](https://github.com/gdsfactory/gdsfactory/pull/3736)
+- Fix samples [#3735](https://github.com/gdsfactory/gdsfactory/pull/3735)
+- improve pads [#3734](https://github.com/gdsfactory/gdsfactory/pull/3734)
+
+## [9.2.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.2.2) - 2025-03-17
+
+- add length_taper_start for mmi_tapered [#3731](https://github.com/gdsfactory/gdsfactory/pull/3731)
+- Improve ring double coupler [#3730](https://github.com/gdsfactory/gdsfactory/pull/3730)
+- better ascii docs [#3729](https://github.com/gdsfactory/gdsfactory/pull/3729)
+
+## [9.2.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.2.1) - 2025-03-16
+
+- Fix mypy and pre-commit [#3728](https://github.com/gdsfactory/gdsfactory/pull/3728)
+- Add mypy to pre-commit and fix mypy issues [#3708](https://github.com/gdsfactory/gdsfactory/pull/3708)
+- improve docstrings for heaters [#3727](https://github.com/gdsfactory/gdsfactory/pull/3727)
+- Unbound pydantic dependency [#3726](https://github.com/gdsfactory/gdsfactory/pull/3726)
+
+## [9.2.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.2.0) - 2025-03-15
+
+- Add __name__ to ComponentFunc [#3720](https://github.com/gdsfactory/gdsfactory/pull/3720)
+- add terminator_spiral [#3718](https://github.com/gdsfactory/gdsfactory/pull/3718)
+- Fix deembed [#3722](https://github.com/gdsfactory/gdsfactory/pull/3722)
+- unpin klayout [#3723](https://github.com/gdsfactory/gdsfactory/pull/3723)
+
+## [9.1.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.1.0) - 2025-03-09
+
+- customize ring_double to accept gap_top and gap_top [#3715](https://github.com/gdsfactory/gdsfactory/pull/3715)
+- Simpler spiral definition [#3713](https://github.com/gdsfactory/gdsfactory/pull/3713)
+- Allow explicit return of ComponentAllAngle in get_component [#3709](https://github.com/gdsfactory/gdsfactory/pull/3709)
+- improve straight_heater [#3714](https://github.com/gdsfactory/gdsfactory/pull/3714)
+- ignore on route collision [#3710](https://github.com/gdsfactory/gdsfactory/pull/3710)
+- Improve bend s [#3705](https://github.com/gdsfactory/gdsfactory/pull/3705)
+
+## [9.0.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.0.3) - 2025-03-04
+
+- Remove typing changes from migration docs [#3698](https://github.com/gdsfactory/gdsfactory/pull/3698)
+- update kfactory [#3703](https://github.com/gdsfactory/gdsfactory/pull/3703)
+
+## [9.0.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.0.2) - 2025-02-27
+
+- automatic_name_cladding_layer_sections [#3694](https://github.com/gdsfactory/gdsfactory/pull/3694)
+
+## [9.0.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.0.1) - 2025-02-20
+
+- Unpin kfactory version [#3686](https://github.com/gdsfactory/gdsfactory/pull/3686)
+
+## [9.0.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v9.0.0) - 2025-02-18
+
+- Add more tests [#3680](https://github.com/gdsfactory/gdsfactory/pull/3680)
+- Add more tests and change inheritance of Path [#3676](https://github.com/gdsfactory/gdsfactory/pull/3676)
+- allow zero length coupling rings [#3678](https://github.com/gdsfactory/gdsfactory/pull/3678)
+- Improve docs [#3682](https://github.com/gdsfactory/gdsfactory/pull/3682)
+- improve migration guides [#3674](https://github.com/gdsfactory/gdsfactory/pull/3674)
+- GDSFactory v9 [#3630](https://github.com/gdsfactory/gdsfactory/pull/3630)
+
+## [8.32.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.32.2) - 2025-02-14
+
+- Fix grating coupler loss [#3666](https://github.com/gdsfactory/gdsfactory/pull/3666)
+- add warning for python3.10 [#3673](https://github.com/gdsfactory/gdsfactory/pull/3673)
+
+## [8.32.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.32.1) - 2025-02-10
+
+- solid dither pattern does not exist [#3650](https://github.com/gdsfactory/gdsfactory/pull/3650)
+- fix type annotations [#3649](https://github.com/gdsfactory/gdsfactory/pull/3649)
+- Support via stack different xy offsets [#3657](https://github.com/gdsfactory/gdsfactory/pull/3657)
+- better instance validation errors [#3652](https://github.com/gdsfactory/gdsfactory/pull/3652)
+- fix type annotations [#3649](https://github.com/gdsfactory/gdsfactory/pull/3649)
+- Small improvements [#3648](https://github.com/gdsfactory/gdsfactory/pull/3648)
+
+## [8.32.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.32.0) - 2025-02-04
+
+- making auto tapering reflexive [#3647](https://github.com/gdsfactory/gdsfactory/pull/3647)
+
+## [8.31.4](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.31.4) - 2025-02-02
+
+- flatten_nitride_transition [#3644](https://github.com/gdsfactory/gdsfactory/pull/3644)
+
+## [8.31.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.31.3) - 2025-02-01
+
+- Fix nitride transition [#3643](https://github.com/gdsfactory/gdsfactory/pull/3643)
+
+## [8.31.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.31.2) - 2025-01-27
+
+- fix cutback_component [#3638](https://github.com/gdsfactory/gdsfactory/pull/3638)
+- Unclamp trimesh dependency [#3637](https://github.com/gdsfactory/gdsfactory/pull/3637)
+
+
+## [8.31.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.31.1) - 2025-01-27
+
+- remove zero length waveguides from cutback_component [#3635](https://github.com/gdsfactory/gdsfactory/pull/3635)
+- Fix mypy issue [#3629](https://github.com/gdsfactory/gdsfactory/pull/3629)
+- cleanup_precommit [#3636](https://github.com/gdsfactory/gdsfactory/pull/3636)
+- [pre-commit.ci] pre-commit autoupdate [#3634](https://github.com/gdsfactory/gdsfactory/pull/3634)
+- add remove_old_layer_flag to over_under [#3627](https://github.com/gdsfactory/gdsfactory/pull/3627)
+- improve pack error message [#3626](https://github.com/gdsfactory/gdsfactory/pull/3626)
+
+
+## [8.31.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.31.0) - 2025-01-22
+
+- add tests for containers [#3620](https://github.com/gdsfactory/gdsfactory/pull/3620)
+- Add more tests [#3614](https://github.com/gdsfactory/gdsfactory/pull/3614)
+- fix gf.boolean for arrays [#3622](https://github.com/gdsfactory/gdsfactory/pull/3622)
+- remove default 1,0 boolean layer [#3624](https://github.com/gdsfactory/gdsfactory/pull/3624)
+- Underscore intermediate functions [#3623](https://github.com/gdsfactory/gdsfactory/pull/3623)
+- add tests for containers [#3620](https://github.com/gdsfactory/gdsfactory/pull/3620)
+- update kfactory [#3625](https://github.com/gdsfactory/gdsfactory/pull/3625)
+- [pre-commit.ci] pre-commit autoupdate [#3619](https://github.com/gdsfactory/gdsfactory/pull/3619)
+- deps: update pyglet requirement from <2 to <3 [#3615](https://github.com/gdsfactory/gdsfactory/pull/3615)
+
+## [8.30.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.30.3) - 2025-01-17
+
+- fix grid rotation [#3612](https://github.com/gdsfactory/gdsfactory/pull/3612)
+- Update taper_cross_section.py [#3604](https://github.com/gdsfactory/gdsfactory/pull/3604)
+- Add more ComponentAllAngle tests [#3598](https://github.com/gdsfactory/gdsfactory/pull/3598)
+- Simpler crossing [#3607](https://github.com/gdsfactory/gdsfactory/pull/3607)
+
+## [8.30.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.30.2) - 2025-01-14
+
+- Fix wrong Component.copy [#3602](https://github.com/gdsfactory/gdsfactory/pull/3602)
+- fix extend ports [#3600](https://github.com/gdsfactory/gdsfactory/pull/3600)
+- Move Component only functions to Component class [#3596](https://github.com/gdsfactory/gdsfactory/pull/3596)
+- swap_inheritance_order [#3590](https://github.com/gdsfactory/gdsfactory/pull/3590)
+- regenerate uv.lock [#3594](https://github.com/gdsfactory/gdsfactory/pull/3594)
+- [pre-commit.ci] pre-commit autoupdate [#3593](https://github.com/gdsfactory/gdsfactory/pull/3593)
+- update pydantic min version [#3601](https://github.com/gdsfactory/gdsfactory/pull/3601)
+- regenerate uv.lock [#3594](https://github.com/gdsfactory/gdsfactory/pull/3594)
+
+## [8.30.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.30.1) - 2025-01-13
+
+- fixes ComponentAllAngle copy [#3591](https://github.com/gdsfactory/gdsfactory/pull/3591)
+
+## [8.30.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.30.0) - 2025-01-12
+
+- update to kfactory 0.23.0 [#3574](https://github.com/gdsfactory/gdsfactory/pull/3574)
+- remove unused param [#3586](https://github.com/gdsfactory/gdsfactory/pull/3586)
+- update kfactory to 0.23.1 [#3589](https://github.com/gdsfactory/gdsfactory/pull/3589)
+
+## [8.29.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.29.2) - 2025-01-09
+
+- expose sbend in coupler [#3585](https://github.com/gdsfactory/gdsfactory/pull/3585)
+
+## [8.29.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.29.1) - 2025-01-08
+
+- Fix loss deembed [#3583](https://github.com/gdsfactory/gdsfactory/pull/3583)
+- fix grating_coupler_tree [#3582](https://github.com/gdsfactory/gdsfactory/pull/3582)
+- only define straight and bend in route_bundle if necessary [#3581](https://github.com/gdsfactory/gdsfactory/pull/3581)
+- fix grating_coupler_tree [#3582](https://github.com/gdsfactory/gdsfactory/pull/3582)
+- improve_add_electrical_pads_shortest [#3578](https://github.com/gdsfactory/gdsfactory/pull/3578)
+- [pre-commit.ci] pre-commit autoupdate [#3577](https://github.com/gdsfactory/gdsfactory/pull/3577)
+- Correct doc example in 11_best_practices.ipynb [#3580](https://github.com/gdsfactory/gdsfactory/pull/3580)
+
+## [8.29.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.29.0) - 2025-01-05
+
+- register containers in pdk [#3572](https://github.com/gdsfactory/gdsfactory/pull/3572)
+- add filepath to yaml cell [#3569](https://github.com/gdsfactory/gdsfactory/pull/3569)
+- Clean connectivity for some components [#3575](https://github.com/gdsfactory/gdsfactory/pull/3575)
+- Expose electrical ports in ring_pn [#3573](https://github.com/gdsfactory/gdsfactory/pull/3573)
+- fixing docs for non-orthogonal grid array [#3566](https://github.com/gdsfactory/gdsfactory/pull/3566)
+- fix cutbacks [#3567](https://github.com/gdsfactory/gdsfactory/pull/3567)
+- ensure GDSDIR_TEMP exists [#3565](https://github.com/gdsfactory/gdsfactory/pull/3565)
+
+
+## [8.28.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.28.1) - 2024-12-31
+
+- Simpler straight heater meander default args [#3563](https://github.com/gdsfactory/gdsfactory/pull/3563)
+- add angle resolution to via_circular [#3562](https://github.com/gdsfactory/gdsfactory/pull/3562)
+- Add more tests [#3559](https://github.com/gdsfactory/gdsfactory/pull/3559)
+- [pre-commit.ci] pre-commit autoupdate [#3561](https://github.com/gdsfactory/gdsfactory/pull/3561)
+- deps: bump astral-sh/setup-uv from 4 to 5 [#3560](https://github.com/gdsfactory/gdsfactory/pull/3560)
+
+
+## [8.28.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.28.0) - 2024-12-29
+
+- Add more tests [#3550](https://github.com/gdsfactory/gdsfactory/pull/3550)
+- raise error when modifying locked components that use cell decorator [#3556](https://github.com/gdsfactory/gdsfactory/pull/3556)
+- add straight_piecewise [#3551](https://github.com/gdsfactory/gdsfactory/pull/3551)
+- fix freetype [#3557](https://github.com/gdsfactory/gdsfactory/pull/3557)
+- raise error when modifying locked components that use cell decorator [#3556](https://github.com/gdsfactory/gdsfactory/pull/3556)
+- Fix is_cell [#3549](https://github.com/gdsfactory/gdsfactory/pull/3549)
+- Fix route ports to side kwargs [#3547](https://github.com/gdsfactory/gdsfactory/pull/3547)
+- Remove deprecated methods from tests [#3558](https://github.com/gdsfactory/gdsfactory/pull/3558)
+- Fix ALL mypy errors! [#3544](https://github.com/gdsfactory/gdsfactory/pull/3544)
+
+## [8.27.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.27.2) - 2024-12-27
+
+- remove import_gds cache [#3543](https://github.com/gdsfactory/gdsfactory/pull/3543)
+- Fix mypy errors [#3542](https://github.com/gdsfactory/gdsfactory/pull/3542)
+
+## [8.27.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.27.1) - 2024-12-25
+
+- fix gf version [#3541](https://github.com/gdsfactory/gdsfactory/pull/3541)
+- Fix to svg [#3534](https://github.com/gdsfactory/gdsfactory/pull/3534)
+- fix array_connect in YAML [#3533](https://github.com/gdsfactory/gdsfactory/pull/3533)
+- fix duplicate ports in documentation plots [#3532](https://github.com/gdsfactory/gdsfactory/pull/3532)
+- Fix mypy errors [#3540](https://github.com/gdsfactory/gdsfactory/pull/3540)
+- Feature/fix mypy errors [#3538](https://github.com/gdsfactory/gdsfactory/pull/3538)
+- remove pytest_only dep [#3539](https://github.com/gdsfactory/gdsfactory/pull/3539)
+- update dependabot [#3530](https://github.com/gdsfactory/gdsfactory/pull/3530)
+
+## [8.27.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.27.0) - 2024-12-23
+
+- Update bundle syntax within from_yaml parser [#3526](https://github.com/gdsfactory/gdsfactory/pull/3526)
+- add print for different packages [#3522](https://github.com/gdsfactory/gdsfactory/pull/3522)
+- Update taper_adiabatic.py [#3524](https://github.com/gdsfactory/gdsfactory/pull/3524)
+- fix awg [#3521](https://github.com/gdsfactory/gdsfactory/pull/3521)
+- fix samples and add tests for samples [#3519](https://github.com/gdsfactory/gdsfactory/pull/3519)
+
+## [8.26.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.26.2) - 2024-12-19
+
+- fix tests [#3515](https://github.com/gdsfactory/gdsfactory/pull/3515)
+- Fix grating coupler array ports [#3513](https://github.com/gdsfactory/gdsfactory/pull/3513)
+- Remove terminated ports from gc array [#3510](https://github.com/gdsfactory/gdsfactory/pull/3510)
+- faster uv setup [#3516](https://github.com/gdsfactory/gdsfactory/pull/3516)
+- allow python3.13 [#3517](https://github.com/gdsfactory/gdsfactory/pull/3517)
+- improve routing docs [#3509](https://github.com/gdsfactory/gdsfactory/pull/3509)
+- pass pad pitch as float [#3511](https://github.com/gdsfactory/gdsfactory/pull/3511)
+- update kfactory to 0.22.0 [#3514](https://github.com/gdsfactory/gdsfactory/pull/3514)
+
+## [8.26.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.26.1) - 2024-12-16
+
+- Add via circular pitch [#3508](https://github.com/gdsfactory/gdsfactory/pull/3508)
+- fix python3.10 [#3505](https://github.com/gdsfactory/gdsfactory/pull/3505)
+- fix FileWatcher [#3503](https://github.com/gdsfactory/gdsfactory/pull/3503)
+- Fix metal routing docstrings [#3506](https://github.com/gdsfactory/gdsfactory/pull/3506)
+- Improve docs [#3504](https://github.com/gdsfactory/gdsfactory/pull/3504)
+- Update dev command in Makefile [#3507](https://github.com/gdsfactory/gdsfactory/pull/3507)
+- Refactor all warnings deprecation warnings to use deprecate function [#3501](https://github.com/gdsfactory/gdsfactory/pull/3501)
+- [pre-commit.ci] pre-commit autoupdate [#3502](https://github.com/gdsfactory/gdsfactory/pull/3502)
+
+## [8.26.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.26.0) - 2024-12-15
+
+- Add A* routing [#3495](https://github.com/gdsfactory/gdsfactory/pull/3495)
+- Fix route ports to side [#3499](https://github.com/gdsfactory/gdsfactory/pull/3499)
+- Better docs [#3498](https://github.com/gdsfactory/gdsfactory/pull/3498)
+- Fix mypy errors [#3493](https://github.com/gdsfactory/gdsfactory/pull/3493)
+
+## [8.25.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.25.2) - 2024-12-12
+
+- support different column_pitch and row_pitch for vias [#3490](https://github.com/gdsfactory/gdsfactory/pull/3490)
+
+## [8.25.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.25.1) - 2024-12-12
+
+- fixes bezier [#3488](https://github.com/gdsfactory/gdsfactory/pull/3488)
+- mmi accepts component spec [#3489](https://github.com/gdsfactory/gdsfactory/pull/3489)
+- use pytest_randomly [#3484](https://github.com/gdsfactory/gdsfactory/pull/3484)
+
+## [8.25.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.25.0) - 2024-12-12
+
+- make netlist array instances nicer [#3486](https://github.com/gdsfactory/gdsfactory/pull/3486)
+- Eliminate side effects to global yaml behavior [#3485](https://github.com/gdsfactory/gdsfactory/pull/3485)
+- Fix label side effect [#3483](https://github.com/gdsfactory/gdsfactory/pull/3483)
+
+## [8.24.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.24.1) - 2024-12-11
+
+- Fix sections type [#3480](https://github.com/gdsfactory/gdsfactory/pull/3480)
+
+## [8.24.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.24.0) - 2024-12-11
+
+- add categories [#3474](https://github.com/gdsfactory/gdsfactory/pull/3474)
+- add uv to docker [#3463](https://github.com/gdsfactory/gdsfactory/pull/3463)
+- fix via_stack_with_offset [#3479](https://github.com/gdsfactory/gdsfactory/pull/3479)
+- Enforce layer in section [#3475](https://github.com/gdsfactory/gdsfactory/pull/3475)
+- Fix mypy errors in samples and components folders and cli file [#3473](https://github.com/gdsfactory/gdsfactory/pull/3473)
+- Fix mypy errors in cross_section.py file [#3472](https://github.com/gdsfactory/gdsfactory/pull/3472)
+- [pre-commit.ci] pre-commit autoupdate [#3470](https://github.com/gdsfactory/gdsfactory/pull/3470)
+- Layer stack accepts layers [#3471](https://github.com/gdsfactory/gdsfactory/pull/3471)
+- deprecate d-attributes for path [#3467](https://github.com/gdsfactory/gdsfactory/pull/3467)
+- Remove duplicate types [#3466](https://github.com/gdsfactory/gdsfactory/pull/3466)
+- Fix MyPy errors in routing folder [#3464](https://github.com/gdsfactory/gdsfactory/pull/3464)
+- Fix mypy errors in labels and read folders [#3462](https://github.com/gdsfactory/gdsfactory/pull/3462)
+
+
+## [8.23.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.23.0) - 2024-12-05
+
+- less kwargs [#3457](https://github.com/gdsfactory/gdsfactory/pull/3457)
+- add offset [#3454](https://github.com/gdsfactory/gdsfactory/pull/3454)
+- Less kwargs3 [#3461](https://github.com/gdsfactory/gdsfactory/pull/3461)
+- remove dup [#3460](https://github.com/gdsfactory/gdsfactory/pull/3460)
+- Less kwargs2 [#3458](https://github.com/gdsfactory/gdsfactory/pull/3458)
+- Fix mypy errors in generic_tech and technology folders [#3459](https://github.com/gdsfactory/gdsfactory/pull/3459)
+- Fix MyPy issues in export folder [#3453](https://github.com/gdsfactory/gdsfactory/pull/3453)
+- Fix all MyPy errors in components folder [#3452](https://github.com/gdsfactory/gdsfactory/pull/3452)
+- Move Section to cross_section functions in api docs [#3456](https://github.com/gdsfactory/gdsfactory/pull/3456)
+- Faster extract [#3451](https://github.com/gdsfactory/gdsfactory/pull/3451)
+
+## [8.22.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.22.0) - 2024-12-01
+
+- add uv-precommit [#3450](https://github.com/gdsfactory/gdsfactory/pull/3450)
+- rename via_spacing to pitch and add via_circular [#3449](https://github.com/gdsfactory/gdsfactory/pull/3449)
+- fix grid docs [#3443](https://github.com/gdsfactory/gdsfactory/pull/3443)
+- rename_fiber_spacing_to_pitch [#3448](https://github.com/gdsfactory/gdsfactory/pull/3448)
+- better type annotation [#3447](https://github.com/gdsfactory/gdsfactory/pull/3447)
+- Bump codecov/codecov-action from 4 to 5 [#3445](https://github.com/gdsfactory/gdsfactory/pull/3445)
+- rename_pad_spacing_to_pad_pitch [#3446](https://github.com/gdsfactory/gdsfactory/pull/3446)
+
+## [8.21.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.21.0) - 2024-11-27
+
+- Add missing docs [#3437](https://github.com/gdsfactory/gdsfactory/pull/3437)
+- Improve via_stack ports [#3427](https://github.com/gdsfactory/gdsfactory/pull/3427)
+- Fix some MyPy errors [#3421](https://github.com/gdsfactory/gdsfactory/pull/3421)
+- remove Transition inheritance [#3419](https://github.com/gdsfactory/gdsfactory/pull/3419)
+- Fix remove layers [#3439](https://github.com/gdsfactory/gdsfactory/pull/3439)
+- fix ruff [#3431](https://github.com/gdsfactory/gdsfactory/pull/3431)
+- clear import cache on clearing layout cache [#3430](https://github.com/gdsfactory/gdsfactory/pull/3430)
+- fix cli [#3429](https://github.com/gdsfactory/gdsfactory/pull/3429)
+- fix dbr issues [#3418](https://github.com/gdsfactory/gdsfactory/pull/3418)
+- Add plot to updk [#3438](https://github.com/gdsfactory/gdsfactory/pull/3438)
+- Remove deprecated spacing [#3424](https://github.com/gdsfactory/gdsfactory/pull/3424)
+- fix: remove Transition from get_cross_section return type [#3420](https://github.com/gdsfactory/gdsfactory/pull/3420)
+- improve plot_graphviz [#3416](https://github.com/gdsfactory/gdsfactory/pull/3416)
+- Add missing docs [#3437](https://github.com/gdsfactory/gdsfactory/pull/3437)
+- Update pydantic requirement from <2.10,>=2.6 to >=2.6,<2.11 [#3423](https://github.com/gdsfactory/gdsfactory/pull/3423)
+
+## [8.20.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.20.0) - 2024-11-21
+
+- Deprecate array spacing [#3410](https://github.com/gdsfactory/gdsfactory/pull/3410)
+- better array default [#3412](https://github.com/gdsfactory/gdsfactory/pull/3412)
+- expose version in `gdsfactory.__init__` [#3407](https://github.com/gdsfactory/gdsfactory/pull/3407)
+- Improve yaml mirror docs [#3409](https://github.com/gdsfactory/gdsfactory/pull/3409)
+
+## [8.19.5](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.19.5) - 2024-11-19
+
+- Update kfactory02111 [#3406](https://github.com/gdsfactory/gdsfactory/pull/3406)
+- use uv for installing [#3405](https://github.com/gdsfactory/gdsfactory/pull/3405)
+
+## [8.19.4](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.19.4) - 2024-11-19
+
+- fixes PortWidthMismatch error when setting cross_section in MZI [#3404](https://github.com/gdsfactory/gdsfactory/pull/3404)
+
+## [8.19.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.19.3) - 2024-11-18
+- Fix spiral [#3402](https://github.com/gdsfactory/gdsfactory/pull/3402)
+- fix docs [#3401](https://github.com/gdsfactory/gdsfactory/pull/3401)
+- Fix all Ruff linting errors [#3403](https://github.com/gdsfactory/gdsfactory/pull/3403)
+- Re-type `LayerViews.layers` [#3398](https://github.com/gdsfactory/gdsfactory/pull/3398)
+- Make ComponentAlongPath accessible [#3399](https://github.com/gdsfactory/gdsfactory/pull/3399)
+- fix docs [#3401](https://github.com/gdsfactory/gdsfactory/pull/3401)
+- bump kfactory from 0.21.7 to 0.21.10 [#3400](https://github.com/gdsfactory/gdsfactory/pull/3400)
+
+## [8.19.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.19.2) - 2024-11-18
+
+- Fix return typing for get_boxes() [#3392](https://github.com/gdsfactory/gdsfactory/pull/3392)
+- add rotate [#3397](https://github.com/gdsfactory/gdsfactory/pull/3397)
+- Fix Type Hints [#3391](https://github.com/gdsfactory/gdsfactory/pull/3391)
+- add pyglet [#3393](https://github.com/gdsfactory/gdsfactory/pull/3393)
+
+## [8.19.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.19.1) - 2024-11-15
+
+- fix layer or width for bends [#3390](https://github.com/gdsfactory/gdsfactory/pull/3390)
+
+## [8.19.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.19.0) - 2024-11-15
+
+- better netlist names for na/nb/dax/day -> columns/rows/column_pitch/row_pitch [#3380](https://github.com/gdsfactory/gdsfactory/pull/3380)
+- Fix text justify [#3388](https://github.com/gdsfactory/gdsfactory/pull/3388)
+- Fix port orientation [#3386](https://github.com/gdsfactory/gdsfactory/pull/3386)
+- fix array placement [#3385](https://github.com/gdsfactory/gdsfactory/pull/3385)
+- fix cutback_component [#3384](https://github.com/gdsfactory/gdsfactory/pull/3384)
+
+## [8.18.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.18.2) - 2024-11-14
+
+- fix bend width [#3374](https://github.com/gdsfactory/gdsfactory/pull/3374)
+- add deprecation for ref.parent [#3377](https://github.com/gdsfactory/gdsfactory/pull/3377)
+- Cleaner to um conversion [#3375](https://github.com/gdsfactory/gdsfactory/pull/3375)
+- better pcell values [#3371](https://github.com/gdsfactory/gdsfactory/pull/3371)
+- improve_text_klayout [#3370](https://github.com/gdsfactory/gdsfactory/pull/3370)
+
+## [8.18.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.18.1) - 2024-11-11
+
+- fix missing start/end angles arg in route_bundle [#3366](https://github.com/gdsfactory/gdsfactory/pull/3366)
+- Fix route_bundle to allow routing electrical ports like optical ones #3363  [#3365](https://github.com/gdsfactory/gdsfactory/pull/3365)
+- Fix test manifest [#3361](https://github.com/gdsfactory/gdsfactory/pull/3361)
+- simpler logic [#3364](https://github.com/gdsfactory/gdsfactory/pull/3364)
+- Document route dubin [#3367](https://github.com/gdsfactory/gdsfactory/pull/3367)
+- add code example in readme [#3358](https://github.com/gdsfactory/gdsfactory/pull/3358)
+- NEW ROUTING: Added optimal Dubins paths. [#3362](https://github.com/gdsfactory/gdsfactory/pull/3362)
+- Bump kfactory[ipy] from 0.21.6 to 0.21.7 [#3359](https://github.com/gdsfactory/gdsfactory/pull/3359)
+- Pin python max version [#3357](https://github.com/gdsfactory/gdsfactory/pull/3357)
+
+## [8.18.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.18.0) - 2024-11-10
+
+- Add sample reticle electrical [#3344](https://github.com/gdsfactory/gdsfactory/pull/3344)
+- Enable plot netlists and schematics with graphviz [#3333](https://github.com/gdsfactory/gdsfactory/pull/3333)
+- add test for test_write_test_manifest [#3340](https://github.com/gdsfactory/gdsfactory/pull/3340)
+- deprecate import_gds_with_conflicts and add pdk.version [#3339](https://github.com/gdsfactory/gdsfactory/pull/3339)
+- Improve test manifest [#3338](https://github.com/gdsfactory/gdsfactory/pull/3338)
+- Fix add fiber array excluded ports [#3355](https://github.com/gdsfactory/gdsfactory/pull/3355)
+- fix graphviz docs [#3354](https://github.com/gdsfactory/gdsfactory/pull/3354)
+- get all cells in manifest [#3341](https://github.com/gdsfactory/gdsfactory/pull/3341)
+- fix crow by removing hardcoded ring name [#3349](https://github.com/gdsfactory/gdsfactory/pull/3349)
+- install graphviz [#3348](https://github.com/gdsfactory/gdsfactory/pull/3348)
+- Update watchdog requirement from <6 to <7 [#3335](https://github.com/gdsfactory/gdsfactory/pull/3335)
+
+## [8.17.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.17.0) - 2024-10-29
+
+- update get cells function [#3328](https://github.com/gdsfactory/gdsfactory/pull/3328)
+- improve docs after dbu [#3325](https://github.com/gdsfactory/gdsfactory/pull/3325)
+- bump kfactory [#3324](https://github.com/gdsfactory/gdsfactory/pull/3324)
+
+## [8.16.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.16.0) - 2024-10-28
+
+- remove deprecation warnings [#3304](https://github.com/gdsfactory/gdsfactory/pull/3304)
+- fix difftest [#3323](https://github.com/gdsfactory/gdsfactory/pull/3323)
+
+## [8.15.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.15.3) - 2024-10-28
+
+- fix via_bbox_offsets [#3322](https://github.com/gdsfactory/gdsfactory/pull/3322)
+
+## [8.15.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.15.2) - 2024-10-28
+
+- enforce min_radius to output bend in spiral racetrack [#3319](https://github.com/gdsfactory/gdsfactory/pull/3319)
+- allow multiple connections in get_netlist [#3321](https://github.com/gdsfactory/gdsfactory/pull/3321)
+- [pre-commit.ci] pre-commit autoupdate [#3320](https://github.com/gdsfactory/gdsfactory/pull/3320)
+- More consistent cutback parameters [#3318](https://github.com/gdsfactory/gdsfactory/pull/3318)
+
+## [8.15.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.15.1) - 2024-10-26
+
+- install klive with git [#3315](https://github.com/gdsfactory/gdsfactory/pull/3315)
+- remove routing_warnings [#3314](https://github.com/gdsfactory/gdsfactory/pull/3314)
+
+## [8.15.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.15.0) - 2024-10-22
+
+- Fix `Component.get_labels` returns texts in wrong locations [#3308](https://github.com/gdsfactory/gdsfactory/pull/3308)
+- Update layer_views.py [#3299](https://github.com/gdsfactory/gdsfactory/pull/3299)
+- add width to Component.info [#3305](https://github.com/gdsfactory/gdsfactory/pull/3305)
+- [pre-commit.ci] pre-commit autoupdate [#3303](https://github.com/gdsfactory/gdsfactory/pull/3303)
+- add flatten section to docs [#3309](https://github.com/gdsfactory/gdsfactory/pull/3309)
+- add some type hints [#3301](https://github.com/gdsfactory/gdsfactory/pull/3301)
+- Update trimesh requirement from <4.5,>=4.4.1 to >=4.4.1,<4.6 [#3302](https://github.com/gdsfactory/gdsfactory/pull/3302)
+
+## [8.14.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.14.3) - 2024-10-21
+
+- Update layer_views.py [#3299](https://github.com/gdsfactory/gdsfactory/pull/3299)
+- add width to Component.info [#3305](https://github.com/gdsfactory/gdsfactory/pull/3305)
+- [pre-commit.ci] pre-commit autoupdate [#3303](https://github.com/gdsfactory/gdsfactory/pull/3303)
+- add some type hints [#3301](https://github.com/gdsfactory/gdsfactory/pull/3301)
+
+## [8.14.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.14.2) - 2024-10-18
+
+- fix yaml load [#3298](https://github.com/gdsfactory/gdsfactory/pull/3298)
+
+## [8.14.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.14.1) - 2024-10-17
+
+- fix grid with ports and add test [#3295](https://github.com/gdsfactory/gdsfactory/pull/3295)
+- Componenteference: fixing typo and potential bug [#3287](https://github.com/gdsfactory/gdsfactory/pull/3287)
+- improve route_bundle [#3294](https://github.com/gdsfactory/gdsfactory/pull/3294)
+- add optional add pin layer [#3291](https://github.com/gdsfactory/gdsfactory/pull/3291)
+- update_kfactory0.21.4 [#3293](https://github.com/gdsfactory/gdsfactory/pull/3293)
+
+
+## [8.14.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.14.0) - 2024-10-16
+
+- Remove default cross section for routing functions [#3283](https://github.com/gdsfactory/gdsfactory/pull/3283)
+- better error messages for routing issues for routing issues [#3286](https://github.com/gdsfactory/gdsfactory/pull/3286)
+- update kfactory to 0.21.1 and bring back python3.10 compat [#3285](https://github.com/gdsfactory/gdsfactory/pull/3285)
+- fix test_pdks [#3282](https://github.com/gdsfactory/gdsfactory/pull/3282)
+- use uv [#3279](https://github.com/gdsfactory/gdsfactory/pull/3279)
+- better error messages for routing issues for routing issues [#3286](https://github.com/gdsfactory/gdsfactory/pull/3286)
+- improve route_bundle docs [#3281](https://github.com/gdsfactory/gdsfactory/pull/3281)
+
+## [8.13.5](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.13.5) - 2024-10-15
+
+- make GDSFactory backwards compatible with older kfactory versions [#3278](https://github.com/gdsfactory/gdsfactory/pull/3278)
+
+## [8.13.4](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.13.4) - 2024-10-15
+
+- fix gf read [#3277](https://github.com/gdsfactory/gdsfactory/pull/3277)
+- fix grating_coupler_elliptical_trenches [#3272](https://github.com/gdsfactory/gdsfactory/pull/3272)
+- add move_port function [#3275](https://github.com/gdsfactory/gdsfactory/pull/3275)
+- Sizing layers [#3273](https://github.com/gdsfactory/gdsfactory/pull/3273)
+- update_klayout_package [#3269](https://github.com/gdsfactory/gdsfactory/pull/3269)
+
+## [8.13.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.13.3) - 2024-10-13
+
+- fix dbx and dby [#3268](https://github.com/gdsfactory/gdsfactory/pull/3268)
+- Snap ports to 2nm in functions to detect ports [#3267](https://github.com/gdsfactory/gdsfactory/pull/3267)
+
+## [8.13.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.13.2) - 2024-10-11
+
+- allow_routing_around_bboxes [#3264](https://github.com/gdsfactory/gdsfactory/pull/3264)
+
+## [8.13.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.13.1) - 2024-10-10
+
+- Fix test netlists [#3259](https://github.com/gdsfactory/gdsfactory/pull/3259)
+- cleanup_routing [#3260](https://github.com/gdsfactory/gdsfactory/pull/3260)
+- update kfactory [#3262](https://github.com/gdsfactory/gdsfactory/pull/3262)
+
+## [8.13.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.13.0) - 2024-10-10
+
+- add more port_types [#3258](https://github.com/gdsfactory/gdsfactory/pull/3258)
+- fix route_single [#3255](https://github.com/gdsfactory/gdsfactory/pull/3255)
+- fix straight function [#3254](https://github.com/gdsfactory/gdsfactory/pull/3254)
+- Add xor and gf.functions.move_to_center [#3257](https://github.com/gdsfactory/gdsfactory/pull/3257)
+- define allowed port_types in gf.CONF.port_types and warn other types [#3256](https://github.com/gdsfactory/gdsfactory/pull/3256)
+
+## [8.12.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.12.0) - 2024-10-09
+
+- Add fiber array without route south [#3253](https://github.com/gdsfactory/gdsfactory/pull/3253)
+- Keep port names from component for add_pads_bot, add_fiber_array and add_fiber_single [#3250](https://github.com/gdsfactory/gdsfactory/pull/3250)
+- Add steps to route single [#3248](https://github.com/gdsfactory/gdsfactory/pull/3248)
+- add missing layers in Component.plot() [#3249](https://github.com/gdsfactory/gdsfactory/pull/3249)
+
+## [8.11.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.11.2) - 2024-10-08
+
+- Fix radius loopback [#3246](https://github.com/gdsfactory/gdsfactory/pull/3246)
+- Add cladding center to cross_section [#3245](https://github.com/gdsfactory/gdsfactory/pull/3245)
+
+## [8.11.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.11.1) - 2024-10-08
+
+- Remove taper from electrical routing [#3240](https://github.com/gdsfactory/gdsfactory/pull/3240)
+- remove cross_section arg from kwargs in taper function [#3243](https://github.com/gdsfactory/gdsfactory/pull/3243)
+
+## [8.11.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.11.0) - 2024-10-03
+
+- enable route_bundle with waypoints or steps [#3224](https://github.com/gdsfactory/gdsfactory/pull/3224)
+- better yaml error messages when component missing from pdk [#3238](https://github.com/gdsfactory/gdsfactory/pull/3238)
+
+## [8.10.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.10.2) - 2024-10-02
+
+- fix route_ports_to_side [#3236](https://github.com/gdsfactory/gdsfactory/pull/3236)
+- update kfactory to 0.20.8
+
+## [8.10.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.10.1) - 2024-10-01
+
+- Improve edge coupler docs and fix grid_with_text [#3234](https://github.com/gdsfactory/gdsfactory/pull/3234)
+
+## [8.10.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.10.0) - 2024-09-30
+
+- Add post process to array [#3231](https://github.com/gdsfactory/gdsfactory/pull/3231)
+- remove taper cell [#3230](https://github.com/gdsfactory/gdsfactory/pull/3230)
+- make port array post_process and iterable [#3232](https://github.com/gdsfactory/gdsfactory/pull/3232)
+
+## [8.9.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.9.1) - 2024-09-29
+
+- fix docs [#3226](https://github.com/gdsfactory/gdsfactory/pull/3226)
+- update kfactory to 0.20.7 [#3229](https://github.com/gdsfactory/gdsfactory/pull/3229)
+
+## [8.9.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.9.0) - 2024-09-28
+
+- auto tapering v2 [#3223](https://github.com/gdsfactory/gdsfactory/pull/3223)
+
+## [8.8.9](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.8.9) - 2024-09-27
+
+- More generic components [#3219](https://github.com/gdsfactory/gdsfactory/pull/3219)
+
+## [8.8.8](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.8.8) - 2024-09-20
+
+- Fix netlists [#3215](https://github.com/gdsfactory/gdsfactory/pull/3215)
+- fix add_port returning the port itself instead of the actual added port [#3205](https://github.com/gdsfactory/gdsfactory/pull/3205)
+- fix klayout package icon [#3202](https://github.com/gdsfactory/gdsfactory/pull/3202)
+- watcher allows to overwrite existing cells [#3193](https://github.com/gdsfactory/gdsfactory/pull/3193)
+- better defaults for greek cross [#3214](https://github.com/gdsfactory/gdsfactory/pull/3214)
+- better defaults for gf.components.rectangles [#3198](https://github.com/gdsfactory/gdsfactory/pull/3198)
+- Check coupler radius [#3212](https://github.com/gdsfactory/gdsfactory/pull/3212)
+- improve types [#3211](https://github.com/gdsfactory/gdsfactory/pull/3211)
+- improve klayout extension doc [#3203](https://github.com/gdsfactory/gdsfactory/pull/3203)
+- fix klayout package image [#3202](https://github.com/gdsfactory/gdsfactory/pull/3202)
+- Bump kfactory[ipy] from 0.20.3 to 0.20.5 [#3208](https://github.com/gdsfactory/gdsfactory/pull/3208)
+- change docker to python311 [#3204](https://github.com/gdsfactory/gdsfactory/pull/3204)
+- Update pydantic requirement from <2.9,>=2.6 to >=2.6,<2.10 [#3194](https://github.com/gdsfactory/gdsfactory/pull/3194)
+- Improve klayout extension [#3201](https://github.com/gdsfactory/gdsfactory/pull/3201)
+
+
+## [8.8.7](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.8.7) - 2024-09-05
+
+- fixing hatch patterns in lyp generated from LayerViews [#3181](https://github.com/gdsfactory/gdsfactory/pull/3181)
+- set watcher flags by default [#3184](https://github.com/gdsfactory/gdsfactory/pull/3184)
+- add test for area [#3183](https://github.com/gdsfactory/gdsfactory/pull/3183)
+- Improve docstrings [#3186](https://github.com/gdsfactory/gdsfactory/pull/3186)
+- remove docker_build_minimal [#3178](https://github.com/gdsfactory/gdsfactory/pull/3178)
+
+## [8.8.6](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.8.6) - 2024-09-03
+
+- enforce_python311_or_larger [#3177](https://github.com/gdsfactory/gdsfactory/pull/3177)
+
+## [8.8.5](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.8.5) - 2024-09-03
+
+- deprecate python3.10 [#3176](https://github.com/gdsfactory/gdsfactory/pull/3176)
+
+## [8.8.4](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.8.4) - 2024-09-03
+
+- fixes routing types [#3175](https://github.com/gdsfactory/gdsfactory/pull/3175)
+- fix snspd port_type [#3174](https://github.com/gdsfactory/gdsfactory/pull/3174)
+
+## [8.8.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.8.3) - 2024-09-03
+
+- Re-add missing a straight `ComponentSpec` to `route_from_single_steps`  [#3169](https://github.com/gdsfactory/gdsfactory/pull/3169)
+- [pre-commit.ci] pre-commit autoupdate [#3172](https://github.com/gdsfactory/gdsfactory/pull/3172)
+- Update snspd.py [#3173](https://github.com/gdsfactory/gdsfactory/pull/3173)
+- update to kfactory 0.20.1 [#3166](https://github.com/gdsfactory/gdsfactory/pull/3166)
+- Update watchdog requirement from <5 to <6 [#3170](https://github.com/gdsfactory/gdsfactory/pull/3170)
+
+## [8.8.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.8.2) - 2024-08-30
+
+- improve text rectangular [#3165](https://github.com/gdsfactory/gdsfactory/pull/3165)
+- Match `post_process` in `import_gds` to `@gf.cell` [#3162](https://github.com/gdsfactory/gdsfactory/pull/3162)
+- document_get_ports_list [#3164](https://github.com/gdsfactory/gdsfactory/pull/3164)
+- print Logical/Derived layers prettier [#3161](https://github.com/gdsfactory/gdsfactory/pull/3161)
+
+
+## [8.8.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.8.1) - 2024-08-29
+
+- Update `list[LayerSpec]` types to `LayerSpecs` [#3156](https://github.com/gdsfactory/gdsfactory/pull/3156)
+- decorate import_gds with cache [#3159](https://github.com/gdsfactory/gdsfactory/pull/3159)
+- annotate failures in github [#3153](https://github.com/gdsfactory/gdsfactory/pull/3153)
+- Update kfactory0192 [#3158](https://github.com/gdsfactory/gdsfactory/pull/3158)
+
+## [8.8.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.8.0) - 2024-08-26
+
+- Update to kfactory 0.19 [#3149](https://github.com/gdsfactory/gdsfactory/pull/3149)
+- enable_layout_cache [#3151](https://github.com/gdsfactory/gdsfactory/pull/3151)
+- add font option to text_rectangular [#3143](https://github.com/gdsfactory/gdsfactory/pull/3143)
+- More robust netlist extraction [#3139](https://github.com/gdsfactory/gdsfactory/pull/3139)
+- adding a 'stagger' option to diff [#3144](https://github.com/gdsfactory/gdsfactory/pull/3144)
+
+## [8.7.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.7.3) - 2024-08-18
+
+- lower warn level for layout read [#3137](https://github.com/gdsfactory/gdsfactory/pull/3137)
+- make functions work with Kcells [#3136](https://github.com/gdsfactory/gdsfactory/pull/3136)
+- fix type annotation for layer [#3133](https://github.com/gdsfactory/gdsfactory/pull/3133)
+- fix tests [#3132](https://github.com/gdsfactory/gdsfactory/pull/3132)
+- text rectangular multilayer [#3131](https://github.com/gdsfactory/gdsfactory/pull/3131)
+- Fix minimum length of path for gradient [#3128](https://github.com/gdsfactory/gdsfactory/pull/3128)
+- fix die layer [#3126](https://github.com/gdsfactory/gdsfactory/pull/3126)
+- fix bend_circular bbox [#3124](https://github.com/gdsfactory/gdsfactory/pull/3124)
+- update to docker to python3.12 [#3125](https://github.com/gdsfactory/gdsfactory/pull/3125)
+- Mark `from_kcell` as static method [#3134](https://github.com/gdsfactory/gdsfactory/pull/3134)
+- fix #2887: allow specification of offset_type other than 'sine' in Transition & fix extrude_transition() [#3130](https://github.com/gdsfactory/gdsfactory/pull/3130)
+
+## [8.7.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.7.2) - 2024-08-12
+
+- Expose port orientations [#3121](https://github.com/gdsfactory/gdsfactory/pull/3121)
+- fix default heater meander radius [#3118](https://github.com/gdsfactory/gdsfactory/pull/3118)
+- update numpy [#3117](https://github.com/gdsfactory/gdsfactory/pull/3117)
+- allow serialization as strings [#3115](https://github.com/gdsfactory/gdsfactory/pull/3115)
+- update numpy [#3117](https://github.com/gdsfactory/gdsfactory/pull/3117)
+
+## [8.7.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.7.1) - 2024-08-11
+
+- watcher: possibly prerun all cells [#3114](https://github.com/gdsfactory/gdsfactory/pull/3114)
+
+## [8.7.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.7.0) - 2024-08-10
+
+- Add xsection decorator to pdk [#3112](https://github.com/gdsfactory/gdsfactory/pull/3112)
+- Add containers [#3105](https://github.com/gdsfactory/gdsfactory/pull/3105)
+- fix wire corner ports [#3113](https://github.com/gdsfactory/gdsfactory/pull/3113)
+- avoid warnings for unnamed references [#3107](https://github.com/gdsfactory/gdsfactory/pull/3107)
+
+## [8.6.10](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.10) - 2024-08-07
+
+- improve yaml [#3104](https://github.com/gdsfactory/gdsfactory/pull/3104)
+
+## [8.6.9](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.9) - 2024-08-07
+
+- add_fiber_array works with fiber port [#3103](https://github.com/gdsfactory/gdsfactory/pull/3103)
+- improve docs generation [#3101](https://github.com/gdsfactory/gdsfactory/pull/3101)
+- fix layer serialization [#3100](https://github.com/gdsfactory/gdsfactory/pull/3100)
+
+## [8.6.8](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.8) - 2024-08-07
+
+- better diffest names [#3099](https://github.com/gdsfactory/gdsfactory/pull/3099)
+
+## [8.6.7](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.7) - 2024-08-06
+
+- Watcher improve [#3097](https://github.com/gdsfactory/gdsfactory/pull/3097)
+
+## [8.6.6](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.6) - 2024-08-06
+
+- fix watcher examples [#3095](https://github.com/gdsfactory/gdsfactory/pull/3095)
+- fix add_ports [#3094](https://github.com/gdsfactory/gdsfactory/pull/3094)
+
+## [8.6.5](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.5) - 2024-08-05
+
+- fix difftest [#3080](https://github.com/gdsfactory/gdsfactory/pull/3080)
+- fix bend coupler output cross section [#3090](https://github.com/gdsfactory/gdsfactory/pull/3090)
+
+## [8.6.4](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.4) - 2024-08-02
+
+- fix route_single width [#3085](https://github.com/gdsfactory/gdsfactory/pull/3085)
+- faster Component.extract() [#3087](https://github.com/gdsfactory/gdsfactory/pull/3087)
+- remove klayout pin [#3078](https://github.com/gdsfactory/gdsfactory/pull/3078)
+
+## [8.6.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.3) - 2024-07-31
+
+No significant changes.
+- fix warning message [#3075](https://github.com/gdsfactory/gdsfactory/pull/3075)
+- fix advance_x [#3071](https://github.com/gdsfactory/gdsfactory/pull/3071)
+- Add yamlfmt to pre-commit hooks [#3068](https://github.com/gdsfactory/gdsfactory/pull/3068)
+- Add actionlint to pre-commit hooks [#3067](https://github.com/gdsfactory/gdsfactory/pull/3067)
+- improve contribution guidelines [#3065](https://github.com/gdsfactory/gdsfactory/pull/3065)
+- Fix error raised when blank space is present in text within text_freetype.py [#3070](https://github.com/gdsfactory/gdsfactory/pull/3070)
+- pin max version of klayout [#3076](https://github.com/gdsfactory/gdsfactory/pull/3076)
+
+## [8.6.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.2) - 2024-07-30
+
+- Fix rendering failure for 'i' and 'j' in font.py [#3062](https://github.com/gdsfactory/gdsfactory/pull/3062)
+- Add awg [#3054](https://github.com/gdsfactory/gdsfactory/pull/3054)
+- [pre-commit.ci] pre-commit autoupdate [#3057](https://github.com/gdsfactory/gdsfactory/pull/3057)
+- use generic port names [#3064](https://github.com/gdsfactory/gdsfactory/pull/3064)
+- Remove cell decorator [#3056](https://github.com/gdsfactory/gdsfactory/pull/3056)
+
+## [8.6.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.1) - 2024-07-28
+
+- Fix netlist names [#3053](https://github.com/gdsfactory/gdsfactory/pull/3053)
+- fix trim [#3052](https://github.com/gdsfactory/gdsfactory/pull/3052)
+
+## [8.6.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.6.0) - 2024-07-27
+
+- add trim in place [#3048](https://github.com/gdsfactory/gdsfactory/pull/3048)
+- add trim [#3047](https://github.com/gdsfactory/gdsfactory/pull/3047)
+- add omegaconf to docker build [#3044](https://github.com/gdsfactory/gdsfactory/pull/3044)
+- Add mmi tapered [#3043](https://github.com/gdsfactory/gdsfactory/pull/3043)
+- Small tweaks in `add_pins` [#3032](https://github.com/gdsfactory/gdsfactory/pull/3032)
+- Use Literals for typing port side in routing [#3026](https://github.com/gdsfactory/gdsfactory/pull/3026)
+- Removing omegaconf [#3025](https://github.com/gdsfactory/gdsfactory/pull/3025)
+- remove temp oasis files [#3049](https://github.com/gdsfactory/gdsfactory/pull/3049)
+- Fix get polygons by tuple [#3046](https://github.com/gdsfactory/gdsfactory/pull/3046)
+- Loosen pydantic version and add attrs to dependencies [#3030](https://github.com/gdsfactory/gdsfactory/pull/3030)
+- fix dup [#3031](https://github.com/gdsfactory/gdsfactory/pull/3031)
+- fix get_polygons for instances [#3020](https://github.com/gdsfactory/gdsfactory/pull/3020)
+- Fix Path curvature failing for simple straights [#3017](https://github.com/gdsfactory/gdsfactory/pull/3017)
+- fix boolean.py [#3013](https://github.com/gdsfactory/gdsfactory/pull/3013)
+- gf.functions.trim leverages hierarchical trim from Component.trim [#3050](https://github.com/gdsfactory/gdsfactory/pull/3050)
+- simpler add_pins [#3034](https://github.com/gdsfactory/gdsfactory/pull/3034)
+- default label instance [#3024](https://github.com/gdsfactory/gdsfactory/pull/3024)
+- [pre-commit.ci] pre-commit autoupdate [#3011](https://github.com/gdsfactory/gdsfactory/pull/3011)
+- add omegaconf to docker build [#3044](https://github.com/gdsfactory/gdsfactory/pull/3044)
+- Loosen pydantic version and add attrs to dependencies [#3030](https://github.com/gdsfactory/gdsfactory/pull/3030)
+- Removing omegaconf [#3025](https://github.com/gdsfactory/gdsfactory/pull/3025)
+- Pin kfactory [#3018](https://github.com/gdsfactory/gdsfactory/pull/3018)
+- Bump sphinx from 7.4.3 to 7.4.7 [#3009](https://github.com/gdsfactory/gdsfactory/pull/3009)
+
+
+## [8.5.6](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.5.6) - 2024-07-21
+
+- fix straight_heater_metal_simple [#3004](https://github.com/gdsfactory/gdsfactory/pull/3004)
+- simpler netlist [#3006](https://github.com/gdsfactory/gdsfactory/pull/3006)
+- Simpler netlist [#3005](https://github.com/gdsfactory/gdsfactory/pull/3005)
+- Add move port to zero [#3003](https://github.com/gdsfactory/gdsfactory/pull/3003)
+- Add fiber single [#3001](https://github.com/gdsfactory/gdsfactory/pull/3001)
+- improve add_ports_from_labels [#3000](https://github.com/gdsfactory/gdsfactory/pull/3000)
+
+## [8.5.5](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.5.5) - 2024-07-19
+
+- fix route_south [#2999](https://github.com/gdsfactory/gdsfactory/pull/2999)
+
+## [8.5.4](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.5.4) - 2024-07-19
+
+- support attrs serialization [#2994](https://github.com/gdsfactory/gdsfactory/pull/2994)
+- check if radius is None [#2993](https://github.com/gdsfactory/gdsfactory/pull/2993)
+- raise error if taper port_types=string [#2991](https://github.com/gdsfactory/gdsfactory/pull/2991)
+- small change to allow `from_updk` to save `cross_section` name to `port.info` [#2986](https://github.com/gdsfactory/gdsfactory/pull/2986)
+- Improve route south [#2989](https://github.com/gdsfactory/gdsfactory/pull/2989)
+
+## [8.5.3](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.5.3) - 2024-07-16
+
+- fix cicd for test plugins [#2981](https://github.com/gdsfactory/gdsfactory/pull/2981)
+- fix notebooks link [#2976](https://github.com/gdsfactory/gdsfactory/pull/2976)
+- update kfactory to 0.18 [#2983](https://github.com/gdsfactory/gdsfactory/pull/2983)
+- remove import_gds cache [#2982](https://github.com/gdsfactory/gdsfactory/pull/2982)
+
+## [8.5.2](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.5.2) - 2024-07-14
+
+- fix mzi netlist and add cache to import_gds [#2975](https://github.com/gdsfactory/gdsfactory/pull/2975)
+- read from yaml: minor fixes [#2974](https://github.com/gdsfactory/gdsfactory/pull/2974)
+- improve add_electrical_pads_top [#2972](https://github.com/gdsfactory/gdsfactory/pull/2972)
+- modify route_bundle_sbend to accept customized s bend, adapt from route_single_sbend [#2971](https://github.com/gdsfactory/gdsfactory/pull/2971)
+
+## [8.5.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.5.1) - 2024-07-10
+
+- Improve write cells and fix taper [#2970](https://github.com/gdsfactory/gdsfactory/pull/2970)
+- Add skrf [#2964](https://github.com/gdsfactory/gdsfactory/pull/2964)
+
+## [8.5.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.5.0) - 2024-07-08
+
+- add component copy_layers [#2957](https://github.com/gdsfactory/gdsfactory/pull/2957)
+- add cross_section to route_bundle_all_angle [#2956](https://github.com/gdsfactory/gdsfactory/pull/2956)
+- add gf.functions.get_point_inside [#2954](https://github.com/gdsfactory/gdsfactory/pull/2954)
+- fix slabfix slab grating_coupler [#2959](https://github.com/gdsfactory/gdsfactory/pull/2959)
+- fix extrude to work with transitions [#2951](https://github.com/gdsfactory/gdsfactory/pull/2951)
+- improve gf.read.from_yaml [#2936](https://github.com/gdsfactory/gdsfactory/pull/2936)
+- fixes ComponentAlongPath by making it frozen [#2941](https://github.com/gdsfactory/gdsfactory/pull/2941)
+- allow_callable_width [#2937](https://github.com/gdsfactory/gdsfactory/pull/2937)
+- fix #2928 [#2931](https://github.com/gdsfactory/gdsfactory/pull/2931)
+- improve die [#2960](https://github.com/gdsfactory/gdsfactory/pull/2960)
+- [pre-commit.ci] pre-commit autoupdate [#2932](https://github.com/gdsfactory/gdsfactory/pull/2932)
+- Improve warnings traceback [#2958](https://github.com/gdsfactory/gdsfactory/pull/2958)
+- More from yaml updates [#2948](https://github.com/gdsfactory/gdsfactory/pull/2948)
+- Increase backwards compat [#2942](https://github.com/gdsfactory/gdsfactory/pull/2942)
+
+## [8.4.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.4.0) - 2024-06-28
+
+- better difftest to show old and new separately [#2923](https://github.com/gdsfactory/gdsfactory/pull/2923)
+- Added spiral inductor in gdsfactory.components [#2918](https://github.com/gdsfactory/gdsfactory/pull/2918)
+- add allow_layer_mismatch and allow_width_mismatch [#2920](https://github.com/gdsfactory/gdsfactory/pull/2920)
+- add labels with old, new, xor [#2924](https://github.com/gdsfactory/gdsfactory/pull/2924)
+- Update kfactory [#2921](https://github.com/gdsfactory/gdsfactory/pull/2921)
+- Bump kfactory[git,ipy] from 0.17.6 to 0.17.8 [#2922](https://github.com/gdsfactory/gdsfactory/pull/2922)
+
+## [8.3.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.3.1) - 2024-06-25
+
+- fix add_ports_from_labels [#2917](https://github.com/gdsfactory/gdsfactory/pull/2917)
+- fixes add_ports_from_labels [#2916](https://github.com/gdsfactory/gdsfactory/pull/2916)
+- save_options should be None by default [#2909](https://github.com/gdsfactory/gdsfactory/pull/2909)
+
+## [8.3.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.2.1) - 2024-06-21
+
+- Fix dicing_lane [#2904](https://github.com/gdsfactory/gdsfactory/pull/2904)
+- fix route_bundle [#2901](https://github.com/gdsfactory/gdsfactory/pull/2901)
+- Fix dicing_lane [#2904](https://github.com/gdsfactory/gdsfactory/pull/2904)
+
+## [8.2.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.2.1) - 2024-06-21
+
+- fix plot_netlist [#2900](https://github.com/gdsfactory/gdsfactory/pull/2900)
+
+## [8.2.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.2.0) - 2024-06-21
+
+- add seal_ring_segmented [#2880](https://github.com/gdsfactory/gdsfactory/pull/2880)
+- make 7to8 migration script more safe by default [#2877](https://github.com/gdsfactory/gdsfactory/pull/2877)
+- Fix klayout tech [#2896](https://github.com/gdsfactory/gdsfactory/pull/2896)
+- Remove gdstk dependency [#2895](https://github.com/gdsfactory/gdsfactory/pull/2895)
+- pin version of kfactory with == [#2890](https://github.com/gdsfactory/gdsfactory/pull/2890)
+- fix get_layer [#2889](https://github.com/gdsfactory/gdsfactory/pull/2889)
+- Fix tests [#2878](https://github.com/gdsfactory/gdsfactory/pull/2878)
+- fix #2869 by adding a 'by' argument to get_polygons and get_polygons_points [#2876](https://github.com/gdsfactory/gdsfactory/pull/2876)
+- Improve docs and from_updk [#2893](https://github.com/gdsfactory/gdsfactory/pull/2893)
+- [pre-commit.ci] pre-commit autoupdate [#2884](https://github.com/gdsfactory/gdsfactory/pull/2884)
+- don't activate generic pdk [#2892](https://github.com/gdsfactory/gdsfactory/pull/2892)
+- remove usage of gdstk in font.py [#2882](https://github.com/gdsfactory/gdsfactory/pull/2882)
+- layer_level_accepts_spec [#2874](https://github.com/gdsfactory/gdsfactory/pull/2874)
+- export/to_gerber: Update for v8 [#2875](https://github.com/gdsfactory/gdsfactory/pull/2875)
+
+## [8.1.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.1.0) - 2024-06-14
+
+- Get polygons by name better layer serialization [#2873](https://github.com/gdsfactory/gdsfactory/pull/2873)
+- add klive dependency [#2851](https://github.com/gdsfactory/gdsfactory/pull/2851)
+- add klayout_tech to pdk [#2854](https://github.com/gdsfactory/gdsfactory/pull/2854)
+- Fix add pins triangle [#2868](https://github.com/gdsfactory/gdsfactory/pull/2868)
+- Improve netlist format and extractor [#2846](https://github.com/gdsfactory/gdsfactory/pull/2846)
+- Avoid duplicated ports [#2849](https://github.com/gdsfactory/gdsfactory/pull/2849)
+- [pre-commit.ci] pre-commit autoupdate [#2848](https://github.com/gdsfactory/gdsfactory/pull/2848)
+- Improve geometry docs [#2845](https://github.com/gdsfactory/gdsfactory/pull/2845)
+- changing links to nets [#2867](https://github.com/gdsfactory/gdsfactory/pull/2867)
+- Fix for boolean example in Geometry notebook [#2860](https://github.com/gdsfactory/gdsfactory/pull/2860)
+- update kfactory [#2852](https://github.com/gdsfactory/gdsfactory/pull/2852)
+
+## [8.0.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v8.0.0) - 2024-06-09
+
+- Proposal: simpler LayerStack and DerivedLayers [#2805](https://github.com/gdsfactory/gdsfactory/pull/2805)
+- Add die with pads [#2828](https://github.com/gdsfactory/gdsfactory/pull/2828)
+- add ports from boxes [#2809](https://github.com/gdsfactory/gdsfactory/pull/2809)
+- Add vcell [#2807](https://github.com/gdsfactory/gdsfactory/pull/2807)
+- add route_info [#2806](https://github.com/gdsfactory/gdsfactory/pull/2806)
+- Deprecate instance setter [#2794](https://github.com/gdsfactory/gdsfactory/pull/2794)
+- Refactor xmin to dxmin [#2791](https://github.com/gdsfactory/gdsfactory/pull/2791)
+- add __getattribute__ to gf.Component [#2785](https://github.com/gdsfactory/gdsfactory/pull/2785)
+- New sort ports [#2788](https://github.com/gdsfactory/gdsfactory/pull/2788)
+- add clear cache [#2772](https://github.com/gdsfactory/gdsfactory/pull/2772)
+- fix ring_double [#2835](https://github.com/gdsfactory/gdsfactory/pull/2835)
+- Fix netlists2 [#2829](https://github.com/gdsfactory/gdsfactory/pull/2829)
+- Fix get netlists [#2822](https://github.com/gdsfactory/gdsfactory/pull/2822)
+- uncomment skip tests [#2820](https://github.com/gdsfactory/gdsfactory/pull/2820)
+- minor fixes [#2817](https://github.com/gdsfactory/gdsfactory/pull/2817)
+- Remove warnings2 [#2816](https://github.com/gdsfactory/gdsfactory/pull/2816)
+- Fix grating coupler rectangular [#2815](https://github.com/gdsfactory/gdsfactory/pull/2815)
+- Fix mmis [#2814](https://github.com/gdsfactory/gdsfactory/pull/2814)
+- serialize layer by name [#2813](https://github.com/gdsfactory/gdsfactory/pull/2813)
+- taper=None by default [#2812](https://github.com/gdsfactory/gdsfactory/pull/2812)
+- fix less than 1nm issue [#2811](https://github.com/gdsfactory/gdsfactory/pull/2811)
+- Fix ring double pn [#2810](https://github.com/gdsfactory/gdsfactory/pull/2810)
+- Fix tests2 [#2802](https://github.com/gdsfactory/gdsfactory/pull/2802)
+- Fix tests [#2801](https://github.com/gdsfactory/gdsfactory/pull/2801)
+- make "-" boolean_not [#2800](https://github.com/gdsfactory/gdsfactory/pull/2800)
+- More fixes [#2798](https://github.com/gdsfactory/gdsfactory/pull/2798)
+- decrease separation to make port_ordering test not freak out [#2789](https://github.com/gdsfactory/gdsfactory/pull/2789)
+- Fix more tests and add pydocstyle tests to ruff [#2786](https://github.com/gdsfactory/gdsfactory/pull/2786)
+- gdsfactory8 upcoming new major release [#2779](https://github.com/gdsfactory/gdsfactory/pull/2779)
+- Fix more notebooks [#2773](https://github.com/gdsfactory/gdsfactory/pull/2773)
+- fix tech installation on windows [#2777](https://github.com/gdsfactory/gdsfactory/pull/2777)
+- Fix more docs [#2771](https://github.com/gdsfactory/gdsfactory/pull/2771)
+- Fix more docs [#2769](https://github.com/gdsfactory/gdsfactory/pull/2769)
+- fixing docs [#2768](https://github.com/gdsfactory/gdsfactory/pull/2768)
+- remove gf.asserts and picmodel [#2840](https://github.com/gdsfactory/gdsfactory/pull/2840)
+- [pre-commit.ci] pre-commit autoupdate [#2790](https://github.com/gdsfactory/gdsfactory/pull/2790)
+- improve docs [#2839](https://github.com/gdsfactory/gdsfactory/pull/2839)
+- make cli to be consistent using dashes [#2838](https://github.com/gdsfactory/gdsfactory/pull/2838)
+- improve docs [#2836](https://github.com/gdsfactory/gdsfactory/pull/2836)
+- Fix netlists2 [#2829](https://github.com/gdsfactory/gdsfactory/pull/2829)
+- improve docs [#2825](https://github.com/gdsfactory/gdsfactory/pull/2825)
+- Fix get netlists [#2822](https://github.com/gdsfactory/gdsfactory/pull/2822)
+- Fix grating coupler rectangular [#2815](https://github.com/gdsfactory/gdsfactory/pull/2815)
+- Fix mmis [#2814](https://github.com/gdsfactory/gdsfactory/pull/2814)
+- Fix tests2 [#2802](https://github.com/gdsfactory/gdsfactory/pull/2802)
+- Remove warnings [#2796](https://github.com/gdsfactory/gdsfactory/pull/2796)
+- keep shorter name for PDK [#2792](https://github.com/gdsfactory/gdsfactory/pull/2792)
+- update readme [#2784](https://github.com/gdsfactory/gdsfactory/pull/2784)
+- gdsfactory8 upcoming new major release [#2779](https://github.com/gdsfactory/gdsfactory/pull/2779)
+- Fix more notebooks [#2773](https://github.com/gdsfactory/gdsfactory/pull/2773)
+- update to kfactory backend [#2766](https://github.com/gdsfactory/gdsfactory/pull/2766)
+
+
+## [7.27.0](https://github.com/gdsfactory/gdsfactory/releases/tag/v7.27.0) - 2024-05-20
+
+- Improve get route astar [#2752](https://github.com/gdsfactory/gdsfactory/pull/2752)
+- add mimcap [#2751](https://github.com/gdsfactory/gdsfactory/pull/2751)
+- fix disk with wrap_angle=0 [#2745](https://github.com/gdsfactory/gdsfactory/pull/2745)
+- fix spiral_inner_io add_grating_couplers [#2742](https://github.com/gdsfactory/gdsfactory/pull/2742)
+- Clean schematic [#2748](https://github.com/gdsfactory/gdsfactory/pull/2748)
+- test other pdks [#2746](https://github.com/gdsfactory/gdsfactory/pull/2746)
+- update ruff [#2743](https://github.com/gdsfactory/gdsfactory/pull/2743)
+- adds cross-section kwarg [#2741](https://github.com/gdsfactory/gdsfactory/pull/2741)
+- auto_rename_ports for C [#2739](https://github.com/gdsfactory/gdsfactory/pull/2739)
+- get_route_sbend allow mismatch [#2737](https://github.com/gdsfactory/gdsfactory/pull/2737)
+- Improve port types [#2732](https://github.com/gdsfactory/gdsfactory/pull/2732)
+- Update kfactory[git,ipy] requirement from <0.13,>=0.9.1 to >=0.9.1,<0.14 [#2735](https://github.com/gdsfactory/gdsfactory/pull/2735)
+- Fixed issue #2740 where cross-section kwarg was ignored for generic pdk grating coupler array. [#2741](https://github.com/gdsfactory/gdsfactory/issues/2741)
+
 
 ## [7.26.1](https://github.com/gdsfactory/gdsfactory/releases/tag/v7.26.1) - 2024-05-09
 
@@ -40,9 +1054,6 @@
 - Rename fiber ports [#2700](https://github.com/gdsfactory/gdsfactory/pull/2700)
 - fix stl export [#2702](https://github.com/gdsfactory/gdsfactory/pull/2702)
 - add via_stack to spiral_heater [#2698](https://github.com/gdsfactory/gdsfactory/pull/2698)
-
-## Dependency Updates
-
 - Bump sphinx from 7.2.6 to 7.3.7 [#2693](https://github.com/gdsfactory/gdsfactory/pull/2693)
 - Update kweb requirement from <1.3,>=1.1.9 to >=1.1.9,<2.1 [#2675](https://github.com/gdsfactory/gdsfactory/pull/2675)
 - Update trimesh requirement from <4.3,>=4 to >=4,<4.4 [#2674](https://github.com/gdsfactory/gdsfactory/pull/2674)
@@ -273,9 +1284,6 @@ Documentation
 - [pre-commit.ci] pre-commit autoupdate [#2510](https://github.com/gdsfactory/gdsfactory/pull/2510)
 - improve Component.simplify to keep layers and name [#2507](https://github.com/gdsfactory/gdsfactory/pull/2507)
 - add Component.simplify [#2505](https://github.com/gdsfactory/gdsfactory/pull/2505)
-
-Dependency Updates:
-
 - Update pydantic requirement from <2.6,>=2 to >=2,<2.7 [#2508](https://github.com/gdsfactory/gdsfactory/pull/2508)
 
 
@@ -580,7 +1588,7 @@ Dependency Updates:
 - Fix cs and transitions [#2158](https://github.com/gdsfactory/gdsfactory/pull/2158)
 - add via_stack_heater_m2 [#2178](https://github.com/gdsfactory/gdsfactory/pull/2178)
 - Fix lvs demo [#2175](https://github.com/gdsfactory/gdsfactory/pull/2175)
-- warn_connect_with_width_layer_or_type_missmatch [#2176](https://github.com/gdsfactory/gdsfactory/pull/2176)
+- warn_connect_with_width_layer_or_type_mismatch [#2176](https://github.com/gdsfactory/gdsfactory/pull/2176)
 - more representative implants generic_process [#2177](https://github.com/gdsfactory/gdsfactory/pull/2177)
 - remove enforce_port_ordering arg from get_bundle_from_waypoint params [#2174](https://github.com/gdsfactory/gdsfactory/pull/2174)
 - fixes difftest to use XOR instead of NOT [#2172](https://github.com/gdsfactory/gdsfactory/pull/2172)
@@ -2459,7 +3467,7 @@ from functools import partial to all files and makes the docs cleaner by renderi
 | PORT           | optical port pins. For connectivity checks.                  |
 | PORTE          | electrical port pins. For connectivity checks.               |
 | DEVREC         | device recognition layer. For connectivity checks.           |
-| SHOW_PORTS     | add port pin markers when `Component.show(show_ports=True)`  |
+| SHOW_PORTS     | add port pin markers when `Component.show()`  |
 | LABEL_INSTANCE | for adding instance labels on `gf.read.from_yaml`            |
 | LABEL          | for adding labels to grating couplers for automatic testing. |
 | TE             | for TE polarization fiber marker.                            |
@@ -2528,7 +3536,7 @@ from functools import partial to all files and makes the docs cleaner by renderi
 - add events module and events relating to Pdk modifications [PR](https://github.com/gdsfactory/gdsfactory/pull/412)
   - add default_decorator attribute to Pdk. adding pdk argument to pdk-related events
 - add LayerSpec as Union[int, Tuple[int,int], str, None][pr](https://github.com/gdsfactory/gdsfactory/pull/413/)
-  - add layers dict to Pdk(layers=dict(LAYER)), and `pdk.get_layer`
+  - add layers dict to Pdk(layers=LAYER), and `pdk.get_layer`
 
 ## [5.7.1](https://github.com/gdsfactory/gdsfactory/pull/403)
 
@@ -3831,7 +4839,7 @@ from functools import partial to all files and makes the docs cleaner by renderi
 - rename Component `to_dict` to `to_dict()`: is now a method instead of a property
 - rename Component `pprint` to `pprint()`: is now a method instead of a property
 - rename Component `pprint_ports` to `pprint_ports()`: is now a method instead of a property
-- Component.mirror() returns a container
+- Component.dmirror() returns a container
 
 ## 3.4.4
 
@@ -3845,7 +4853,7 @@ from functools import partial to all files and makes the docs cleaner by renderi
 - move some functions (boolean, compute_area, offset, check_width ... ) into `gdsfactory.geometry`
 - add `gdsfactory.geometry.boolean` for klayout based boolean operations
 - add pydantic validator for `ComponentReference`
-- max_name_length is a cell decorator argument used when importing gds cells
+- max_cellname_length is a cell decorator argument used when importing gds cells
 - add `geometry.boolean_klayout`
 
 ## 3.4.2
@@ -4214,7 +5222,7 @@ from functools import partial to all files and makes the docs cleaner by renderi
 ## 2.6.3
 
 - add min_length Waveguide setting, for manhattan routes and get_bundle
-- remove grating_coupler.xmin = 0 inside the route_fiber function
+- remove grating_coupler.dxmin = 0 inside the route_fiber function
 
 ## 2.6.2
 
@@ -4239,7 +5247,7 @@ from functools import partial to all files and makes the docs cleaner by renderi
 
 ## 2.5.7
 
-- Component.show(show_ports=True) adds port names and pins by default (before show_ports=False)
+- Component.show() adds port names and pins by default (before show_ports=False)
 - splitter_tree, also propagates extra coupler ports
 - add_ports_from_markers has an optional `port_layer` for the new created port.
 - component_settings = OmegaConf.to_container(component_settings, resolve=True)
@@ -4368,7 +5376,7 @@ from pydantic import validate_arguments
 - add vertical_te and vertical_tm ports to grating couplers
 - remove klive warning when not klayout is not open (if klayout is not installed or running it will just fail silently)
 - replace cladding for bend_circular and bend_euler with square cladding
-- added `component.show(show_ports=True)`
+- added `component.show()`
 - added `component.show(show_subports=True)`
 - added `pf merge-cells`
 - added `auto_taper_to_wide_waveguides` option to add_fiber_array
@@ -4435,7 +5443,7 @@ from pydantic import validate_arguments
 - rename from `from pp.testing import difftest` to `from pp.difftest import difftest`
 - remove pp.container containerize
 - better type annontations
-- replace some `c.show(show_ports=True)` by a simpler `c.show()`
+- replace some `c.show()` by a simpler `c.show()`
 
 ## 2.2.9
 
@@ -4695,7 +5703,7 @@ else:
 - samples run as part of the test suite, moved samples into pp
 - cell sorts kwarg keys by alphabetical order
 - added cell tests
-- cell accepts max_name_length and ignore_from_name kwargs
+- cell accepts max_cellname_length and ignore_from_name kwargs
 - pp.generate_does raises error if component does not exist in factory
 - replaces name_W20_L30 by name_hash for cell names > 32
 - zz_conn cleaner name using `from pp.cell import clean_name` no slashes in the name

@@ -1,13 +1,10 @@
-function: grating_coupler_tree
 info: {}
-module: gdsfactory.components.grating_coupler_tree
-name: grating_coupler_tree
+name: grating_coupler_tree_gd_ef3cc62e
 settings:
   bend: bend_euler
-  fanout_length: 0.0
-  grating_coupler:
-    function: grating_coupler_elliptical
-  layer_label: null
+  cross_section: strip
+  fanout_length: 0
+  grating_coupler: grating_coupler_elliptical_te
   n: 4
-  straight_spacing: 4.0
+  straight_spacing: 4
   with_loopback: false

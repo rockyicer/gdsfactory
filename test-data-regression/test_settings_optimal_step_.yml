@@ -1,8 +1,6 @@
-function: optimal_step
 info:
   num_squares: 7.986
-module: gdsfactory.components.optimal_step
-name: optimal_step
+name: optimal_step_gdsfactory_6b745aac
 settings:
   anticrowding_factor: 1.2
   end_width: 22

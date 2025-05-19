@@ -1,11 +1,10 @@
-function: dbr
 info: {}
-module: gdsfactory.components.dbr
-name: dbr
+name: dbr_gdsfactorypcomponen_b5754d70
 settings:
-  cross_section: xs_sc
+  cross_section: strip
   l1: 0.159
   l2: 0.159
   n: 10
-  w1: 0.475
-  w2: 0.525
+  straight_length: 0.01
+  w1: 0.45
+  w2: 0.55

@@ -1,19 +1,15 @@
-function: rectangle_with_slits
 info: {}
-module: gdsfactory.components.rectangle_with_slits
-name: rectangle_with_slits
+name: rectangle_with_slits_gd_442d6bfc
 settings:
   centered: false
   layer: WG
   layer_slit: SLAB150
-  port_type: null
   size:
-  - 100.0
-  - 200.0
+  - 100
+  - 200
+  slit_column_pitch: 20
   slit_enclosure: 10
+  slit_row_pitch: 20
   slit_size:
-  - 1.0
-  - 1.0
-  slit_spacing:
-  - 20
-  - 20
+  - 1
+  - 1
